@@ -10,7 +10,7 @@ import type {
 } from '@tanstack/router-core'
 import type { CodeSplitGroupings } from './constants'
 
-export const splitGroupingsSchema = z
+const _splitGroupingsSchema = z
   .array(
     z.array(
       z.union([
@@ -41,6 +41,8 @@ export const splitGroupingsSchema = z
       })
     }
   })
+export const splitGroupingsSchema: typeof _splitGroupingsSchema =
+  _splitGroupingsSchema
 
 export type CodeSplittingOptions = {
   /**
@@ -84,7 +86,7 @@ type FileRouteKeys = keyof (Parameters<
 >[0] & {})
 export type DeletableNodes = FileRouteKeys | (string & {})
 
-export const configSchema = generatorConfigSchema.extend({
+const _configSchema = generatorConfigSchema.extend({
   enableRouteGeneration: z.boolean().optional(),
   codeSplittingOptions: z
     .custom<CodeSplittingOptions>((v) => {
@@ -101,8 +103,12 @@ export const configSchema = generatorConfigSchema.extend({
     })
     .optional(),
 })
+export const configSchema: typeof _configSchema = _configSchema
 
-export const getConfig = (inlineConfig: Partial<Config>, root: string) => {
+export const getConfig = (
+  inlineConfig: Partial<Config>,
+  root: string,
+): Config => {
   const config = getGeneratorConfig(inlineConfig, root)
 
   return configSchema.parse({ ...inlineConfig, ...config })

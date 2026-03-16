@@ -1028,7 +1028,7 @@ ${acc.routeTree.map((child) => `${child.variableName}Route: typeof ${getResolved
       .filter(Boolean)
       .join('\n\n')
     return {
-      routeTreeContent,
+      routeTreeContent: routeTreeContent,
       routeTree: acc.routeTree,
       routeNodes: acc.routeNodes,
     }

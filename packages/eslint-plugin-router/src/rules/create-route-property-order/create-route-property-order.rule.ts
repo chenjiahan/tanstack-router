@@ -20,7 +20,7 @@ function isCreateRouteFunction(node: any): node is CreateRouteFunction {
 
 export const name = 'create-route-property-order'
 
-export const rule = createRule({
+export const rule: ReturnType<typeof createRule> = createRule({
   name,
   meta: {
     type: 'problem',

@@ -1,4 +1,5 @@
 import * as template from '@babel/template'
+import type * as t from '@babel/types'
 import type { AnyRoute, AnyRouteMatch, AnyRouter } from '@tanstack/router-core'
 
 type AnyRouteWithPrivateProps = AnyRoute & {

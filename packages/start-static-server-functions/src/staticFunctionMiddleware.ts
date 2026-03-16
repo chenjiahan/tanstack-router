@@ -125,7 +125,8 @@ const fetchItem = async ({
   return result
 }
 
-export const staticFunctionMiddleware = createMiddleware({ type: 'function' })
+export const staticFunctionMiddleware: ReturnType<typeof createMiddleware> =
+  createMiddleware({ type: 'function' })
   .client(async (ctx) => {
     if (
       process.env.NODE_ENV === 'production' &&

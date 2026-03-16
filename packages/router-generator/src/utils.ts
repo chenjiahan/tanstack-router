@@ -133,12 +133,12 @@ export function multiSortBy<T>(
   return result
 }
 
-export function cleanPath(path: string) {
+export function cleanPath(path: string): string {
   // remove double slashes
   return path.replace(/\/{2,}/g, '/')
 }
 
-export function trimPathLeft(path: string) {
+export function trimPathLeft(path: string): string {
   return path === '/' ? path : path.replace(/^\/{1,}/, '')
 }
 
@@ -146,7 +146,7 @@ export function removeLeadingSlash(path: string): string {
   return path.replace(/^\//, '')
 }
 
-export function removeTrailingSlash(s: string) {
+export function removeTrailingSlash(s: string): string {
   return s.replace(/\/$/, '')
 }
 
@@ -213,7 +213,7 @@ export function determineInitialRoutePath(routePath: string) {
 
   return {
     routePath: final,
-    originalRoutePath,
+    originalRoutePath: originalRoutePath,
   }
 }
 

@@ -445,7 +445,9 @@ const executeBeforeLoad = (
 
   const finishSyncBeforeLoad = (beforeLoadContext: any) => {
     const shouldUpdateMatch =
-      beforeLoadContext !== undefined || !!route.options.loader
+      beforeLoadContext !== undefined ||
+      !!route.options.loader ||
+      !!route.options.beforeLoad
 
     if (shouldUpdateMatch) {
       inner.updateMatch(matchId, (prev) => ({

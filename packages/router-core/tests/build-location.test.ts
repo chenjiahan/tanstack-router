@@ -1209,6 +1209,7 @@ describe('buildLocation - location output structure', () => {
       external: false,
       hash: 'section',
       href: '/posts?page=1#section',
+      origin: 'http://localhost:3000',
       pathname: '/posts',
       publicHref: '/posts?page=1#section',
       search: {

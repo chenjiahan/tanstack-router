@@ -351,9 +351,11 @@ describe('redirect', () => {
     expect(redirectResponse.options).toEqual({
       _fromLocation: {
         external: false,
+        getUrl: expect.any(Function),
         publicHref: '/',
         hash: '',
         href: '/',
+        origin: 'http://localhost',
         pathname: '/',
         search: {},
         searchStr: '',

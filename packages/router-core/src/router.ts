@@ -2131,22 +2131,20 @@ export class RouterCore<
       } = next
 
       if (maskedLocation) {
+        const tempLocation = parseHref(nextHistory.href, {
+          ...nextHistory.state,
+          __tempKey: undefined!,
+          __tempLocation: undefined!,
+          __TSR_key: undefined!,
+          key: undefined!, // TODO: Remove in v2 - use __TSR_key instead
+        })
+
         nextHistory = {
           ...maskedLocation,
           state: {
             ...maskedLocation.state,
             __tempKey: undefined,
-            __tempLocation: {
-              ...nextHistory,
-              search: nextHistory.searchStr,
-              state: {
-                ...nextHistory.state,
-                __tempKey: undefined!,
-                __tempLocation: undefined!,
-                __TSR_key: undefined!,
-                key: undefined!, // TODO: Remove in v2 - use __TSR_key instead
-              },
-            },
+            __tempLocation: tempLocation,
           },
         }
 

@@ -16,6 +16,7 @@ interface ParsedLocation {
   maskedLocation?: ParsedLocation
   unmaskOnReload?: boolean
   url: URL
+  origin: string
 }
 ```
 

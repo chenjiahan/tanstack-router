@@ -1322,7 +1322,7 @@ export class RouterCore<
         ) as any,
         hash: decodePath(url.hash.slice(1)).path,
         state: replaceEqualDeep(previousLocation?.state, state),
-      } as ParsedLocationWithoutUrl<FullSearchSchema<TRouteTree>>)
+      })
     }
 
     const location = parse(locationToParse)
@@ -2016,7 +2016,7 @@ export class RouterCore<
           external,
           origin: memoUrl?.origin ?? this.origin!,
           unmaskOnReload: dest.unmaskOnReload,
-        } as ParsedLocationWithoutUrl,
+        },
         memoUrl,
       )
     }
@@ -2961,7 +2961,7 @@ function comparePaths(a: string, b: string) {
 type ParsedLocationWithoutUrl<TSearchObj extends AnySchema = {}> = Omit<
   ParsedLocation<TSearchObj>,
   'url'
->
+> & { __proto__: typeof parsedLocationPrototype }
 
 const parsedLocationUrls = new WeakMap<ParsedLocation<any>, URL>()
 
@@ -2986,13 +2986,8 @@ function initializeParsedLocation<TSearchObj extends AnySchema = {}>(
   location: ParsedLocationWithoutUrl<TSearchObj>,
   url?: URL | null,
 ): ParsedLocation<TSearchObj> {
-  const parsedLocation = location as ParsedLocation<TSearchObj>
-
-  if (url) {
-    parsedLocationUrls.set(parsedLocation, url)
-  }
-
-  return parsedLocation
+  if (url) parsedLocationUrls.set(location as any, url)
+  return location as any
 }
 
 /**

@@ -49,8 +49,7 @@ export interface ParsedLocation<TSearchObj extends AnySchema = {}> {
    */
   external: boolean
   /**
-   * @private
-   * @description The origin used to resolve `publicHref` into `url`.
+   * The origin used to resolve `publicHref` into `url`.
    */
   origin: string
   /**

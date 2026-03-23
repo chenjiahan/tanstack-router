@@ -104,38 +104,69 @@ describe('Search Params serialization and deserialization', () => {
     )
   })
 
-  test('skips parser work for obviously non-json strings', () => {
-    const parser = vi.fn(JSON.parse)
-    const parseSearch = parseSearchWith(parser)
-    const stringifySearch = stringifySearchWith(JSON.stringify, parser)
+  test('custom parsers still run for non-json-looking strings', () => {
+    const parser = vi.fn((value: string) => {
+      if (!value.startsWith('~')) {
+        throw new Error('not custom-encoded')
+      }
 
-    expect(parseSearch('?plain=value&other=abc123')).toEqual({
-      plain: 'value',
-      other: 'abc123',
+      return value.slice(1)
     })
-    expect(stringifySearch({ plain: 'value', other: 'abc123' })).toEqual(
-      '?plain=value&other=abc123',
-    )
 
-    expect(parser).not.toHaveBeenCalled()
+    const parseSearch = parseSearchWith(parser)
+    const stringifySearch = stringifySearchWith((value) => `~${value}`, parser)
+
+    expect(parseSearch('?filter=%7Eauthor')).toEqual({ filter: 'author' })
+    expect(stringifySearch({ filter: '~author' })).toEqual(
+      '?filter=%7E%7Eauthor',
+    )
+    expect(parseSearch(stringifySearch({ filter: '~author' }))).toEqual({
+      filter: '~author',
+    })
   })
 
-  test('still parses json-like strings', () => {
-    const parser = vi.fn(JSON.parse)
-    const parseSearch = parseSearchWith(parser)
-    const stringifySearch = stringifySearchWith(JSON.stringify, parser)
+  test('skips JSON.parse work for obviously non-json strings', () => {
+    const parseSpy = vi.spyOn(JSON, 'parse')
 
-    expect(
-      parseSearch('?quoted=%22value%22&object=%7B%22ok%22%3Atrue%7D&num=123'),
-    ).toEqual({
-      quoted: 'value',
-      object: { ok: true },
-      num: 123,
-    })
-    expect(
-      stringifySearch({ quoted: '123', object: { ok: true }, num: '42' }),
-    ).toEqual('?quoted=%22123%22&object=%7B%22ok%22%3Atrue%7D&num=%2242%22')
+    try {
+      const parseSearch = parseSearchWith(JSON.parse)
+      const stringifySearch = stringifySearchWith(JSON.stringify, JSON.parse)
 
-    expect(parser).toHaveBeenCalled()
+      expect(parseSearch('?plain=value&other=abc123')).toEqual({
+        plain: 'value',
+        other: 'abc123',
+      })
+      expect(stringifySearch({ plain: 'value', other: 'abc123' })).toEqual(
+        '?plain=value&other=abc123',
+      )
+
+      expect(parseSpy).not.toHaveBeenCalled()
+    } finally {
+      parseSpy.mockRestore()
+    }
+  })
+
+  test('still parses json-like strings with JSON.parse', () => {
+    const parseSpy = vi.spyOn(JSON, 'parse')
+
+    try {
+      const parseSearch = parseSearchWith(JSON.parse)
+      const stringifySearch = stringifySearchWith(JSON.stringify, JSON.parse)
+
+      expect(
+        parseSearch('?quoted=%22value%22&object=%7B%22ok%22%3Atrue%7D&num=123'),
+      ).toEqual({
+        quoted: 'value',
+        object: { ok: true },
+        num: 123,
+      })
+      expect(
+        stringifySearch({ quoted: '123', object: { ok: true }, num: '42' }),
+      ).toEqual('?quoted=%22123%22&object=%7B%22ok%22%3Atrue%7D&num=%2242%22')
+
+      expect(parseSpy).toHaveBeenCalled()
+    } finally {
+      parseSpy.mockRestore()
+    }
   })
 })

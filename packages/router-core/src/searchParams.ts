@@ -43,6 +43,8 @@ function canStringBeJsonParsed(value: string) {
  * @link https://tanstack.com/router/latest/docs/framework/react/guide/custom-search-param-serialization
  */
 export function parseSearchWith(parser: (str: string) => any) {
+  const shouldGuardJsonParse = parser === JSON.parse
+
   return (searchStr: string): AnySchema => {
     if (searchStr[0] === '?') {
       searchStr = searchStr.substring(1)
@@ -53,7 +55,10 @@ export function parseSearchWith(parser: (str: string) => any) {
     // Try to parse any query params that might be json
     for (const key in query) {
       const value = query[key]
-      if (typeof value === 'string' && canStringBeJsonParsed(value)) {
+      if (
+        typeof value === 'string' &&
+        (!shouldGuardJsonParse || canStringBeJsonParsed(value))
+      ) {
         try {
           query[key] = parser(value)
         } catch (_err) {
@@ -83,6 +88,8 @@ export function stringifySearchWith(
   parser?: (str: string) => any,
 ) {
   const hasParser = typeof parser === 'function'
+  const shouldGuardJsonParse = parser === JSON.parse
+
   function stringifyValue(val: any) {
     if (typeof val === 'object' && val !== null) {
       try {
@@ -93,7 +100,7 @@ export function stringifySearchWith(
     } else if (
       hasParser &&
       typeof val === 'string' &&
-      canStringBeJsonParsed(val)
+      (!shouldGuardJsonParse || canStringBeJsonParsed(val))
     ) {
       try {
         // Check if it's a valid parseable string.

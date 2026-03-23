@@ -16,11 +16,8 @@ function canStringBeJsonParsed(value: string) {
 
   const firstCharCode = value.charCodeAt(0)
 
-  if (firstCharCode <= 32) {
-    return true
-  }
-
   return (
+    firstCharCode <= 32 ||
     firstCharCode === 34 ||
     firstCharCode === 45 ||
     firstCharCode === 91 ||

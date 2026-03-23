@@ -9,6 +9,29 @@ export const defaultStringifySearch = stringifySearchWith(
   JSON.parse,
 )
 
+function canStringBeJsonParsed(value: string) {
+  if (!value) {
+    return false
+  }
+
+  const firstCharCode = value.charCodeAt(0)
+
+  if (firstCharCode <= 32) {
+    return true
+  }
+
+  return (
+    firstCharCode === 34 ||
+    firstCharCode === 45 ||
+    firstCharCode === 91 ||
+    firstCharCode === 123 ||
+    (firstCharCode >= 48 && firstCharCode <= 57) ||
+    value === 'true' ||
+    value === 'false' ||
+    value === 'null'
+  )
+}
+
 /**
  * Build a `parseSearch` function using a provided JSON-like parser.
  *
@@ -30,7 +53,7 @@ export function parseSearchWith(parser: (str: string) => any) {
     // Try to parse any query params that might be json
     for (const key in query) {
       const value = query[key]
-      if (typeof value === 'string') {
+      if (typeof value === 'string' && canStringBeJsonParsed(value)) {
         try {
           query[key] = parser(value)
         } catch (_err) {
@@ -67,7 +90,11 @@ export function stringifySearchWith(
       } catch (_err) {
         // silent
       }
-    } else if (hasParser && typeof val === 'string') {
+    } else if (
+      hasParser &&
+      typeof val === 'string' &&
+      canStringBeJsonParsed(val)
+    ) {
       try {
         // Check if it's a valid parseable string.
         // If it is, then stringify it again.

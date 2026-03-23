@@ -1,5 +1,10 @@
-import { describe, expect, test } from 'vitest'
-import { defaultParseSearch, defaultStringifySearch } from '../src'
+import { describe, expect, test, vi } from 'vitest'
+import {
+  defaultParseSearch,
+  defaultStringifySearch,
+  parseSearchWith,
+  stringifySearchWith,
+} from '../src'
 
 describe('Search Params serialization and deserialization', () => {
   /*
@@ -97,5 +102,40 @@ describe('Search Params serialization and deserialization', () => {
     expect(defaultStringifySearch({ foo: date })).toEqual(
       '?foo=%222024-11-18T00%3A00%3A00.000Z%22',
     )
+  })
+
+  test('skips parser work for obviously non-json strings', () => {
+    const parser = vi.fn(JSON.parse)
+    const parseSearch = parseSearchWith(parser)
+    const stringifySearch = stringifySearchWith(JSON.stringify, parser)
+
+    expect(parseSearch('?plain=value&other=abc123')).toEqual({
+      plain: 'value',
+      other: 'abc123',
+    })
+    expect(stringifySearch({ plain: 'value', other: 'abc123' })).toEqual(
+      '?plain=value&other=abc123',
+    )
+
+    expect(parser).not.toHaveBeenCalled()
+  })
+
+  test('still parses json-like strings', () => {
+    const parser = vi.fn(JSON.parse)
+    const parseSearch = parseSearchWith(parser)
+    const stringifySearch = stringifySearchWith(JSON.stringify, parser)
+
+    expect(
+      parseSearch('?quoted=%22value%22&object=%7B%22ok%22%3Atrue%7D&num=123'),
+    ).toEqual({
+      quoted: 'value',
+      object: { ok: true },
+      num: 123,
+    })
+    expect(
+      stringifySearch({ quoted: '123', object: { ok: true }, num: '42' }),
+    ).toEqual('?quoted=%22123%22&object=%7B%22ok%22%3Atrue%7D&num=%2242%22')
+
+    expect(parser).toHaveBeenCalled()
   })
 })

@@ -1,5 +1,11 @@
 # @tanstack/solid-router-ssr-query
 
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- chore: bump solid-query to 6.0.0-alpha.2 ([#7020](https://github.com/TanStack/router/pull/7020))
+
 ## 2.0.0-alpha.8
 
 ### Patch Changes

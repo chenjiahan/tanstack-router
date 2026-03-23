@@ -1278,7 +1278,6 @@ export class RouterCore<
         const searchStr = this.options.stringifySearch(parsedSearch)
 
         return initializeParsedLocation({
-          __proto__: parsedLocationPrototype,
           href: pathname + searchStr + hash,
           publicHref: href,
           pathname: decodePath(pathname).path,
@@ -1291,7 +1290,7 @@ export class RouterCore<
           ) as any,
           hash: decodePath(hash.slice(1)).path,
           state: replaceEqualDeep(previousLocation?.state, state),
-        } as ParsedLocationWithoutUrl<FullSearchSchema<TRouteTree>>)
+        })
       }
 
       // Before we do any processing, we need to allow rewrites to modify the URL
@@ -1309,7 +1308,6 @@ export class RouterCore<
       const fullPath = url.href.replace(url.origin, '')
 
       return initializeParsedLocation({
-        __proto__: parsedLocationPrototype,
         href: fullPath,
         publicHref: href,
         pathname: decodePath(url.pathname).path,
@@ -2005,7 +2003,6 @@ export class RouterCore<
 
       return initializeParsedLocation(
         {
-          __proto__: parsedLocationPrototype,
           publicHref,
           href,
           pathname: nextPathname,
@@ -2958,36 +2955,33 @@ function comparePaths(a: string, b: string) {
   return normalize(a) === normalize(b)
 }
 
-type ParsedLocationWithoutUrl<TSearchObj extends AnySchema = {}> = Omit<
+type ParsedLocationWithoutGetUrl<TSearchObj extends AnySchema = {}> = Omit<
   ParsedLocation<TSearchObj>,
-  'url'
-> & { __proto__: typeof parsedLocationPrototype }
+  'getUrl'
+>
 
 const parsedLocationUrls = new WeakMap<ParsedLocation<any>, URL>()
 
-function getParsedLocationUrl(location: ParsedLocation<any>) {
-  let url = parsedLocationUrls.get(location)
+function getParsedLocationUrl(this: ParsedLocation<any>) {
+  let url = parsedLocationUrls.get(this)
 
   if (!url) {
-    url = new URL(location.publicHref, location.origin)
-    parsedLocationUrls.set(location, url)
+    url = new URL(this.publicHref, this.origin)
+    parsedLocationUrls.set(this, url)
   }
 
   return url
 }
 
-const parsedLocationPrototype = {
-  get url() {
-    return getParsedLocationUrl(this as ParsedLocation<any>)
-  },
-}
-
 function initializeParsedLocation<TSearchObj extends AnySchema = {}>(
-  location: ParsedLocationWithoutUrl<TSearchObj>,
+  location: ParsedLocationWithoutGetUrl<TSearchObj>,
   url?: URL | null,
 ): ParsedLocation<TSearchObj> {
-  if (url) parsedLocationUrls.set(location as any, url)
-  return location as any
+  const parsedLocation = location as ParsedLocation<TSearchObj>
+  parsedLocation.getUrl =
+    getParsedLocationUrl as ParsedLocation<TSearchObj>['getUrl']
+  if (url) parsedLocationUrls.set(parsedLocation as any, url)
+  return parsedLocation
 }
 
 /**

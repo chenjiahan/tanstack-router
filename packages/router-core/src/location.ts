@@ -53,8 +53,8 @@ export interface ParsedLocation<TSearchObj extends AnySchema = {}> {
    */
   origin: string
   /**
-   * A `URL` object representation of the location. This object is created lazily,
-   * so reading this property is not free.
+   * Returns a memoized `URL` object representation of the location.
+   * The `URL` is created lazily, so calling this method is not free.
    */
-  url: URL
+  getUrl: () => URL
 }

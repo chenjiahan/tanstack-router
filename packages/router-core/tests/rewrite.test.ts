@@ -53,10 +53,12 @@ describe('rewrite origin behavior', () => {
     expect(router.state.location.pathname).toBe('/about')
     expect(router.state.location.href).toBe('/about?lang=en#team')
     expect(router.state.location.publicHref).toBe('/docs/about?lang=en#team')
-    expect(router.state.location.url.href).toBe(
+    expect(router.state.location.getUrl().href).toBe(
       'https://public.example.com/docs/about?lang=en#team',
     )
-    expect(router.state.location.url.origin).toBe('https://public.example.com')
+    expect(router.state.location.getUrl().origin).toBe(
+      'https://public.example.com',
+    )
   })
 
   test('buildLocation exposes the current origin to output rewrites', async () => {
@@ -91,10 +93,10 @@ describe('rewrite origin behavior', () => {
       'https://public.example.com/docs/about?lang=en#team',
     )
     expect(location.external).toBe(true)
-    expect(location.url.href).toBe(
+    expect(location.getUrl().href).toBe(
       'https://public.example.com/docs/about?lang=en#team',
     )
-    expect(location.url.origin).toBe('https://public.example.com')
+    expect(location.getUrl().origin).toBe('https://public.example.com')
   })
 
   test('buildAndCommitLocation uses origin-aware rewrites when href is provided', async () => {
@@ -126,7 +128,7 @@ describe('rewrite origin behavior', () => {
     expect(router.state.location.pathname).toBe('/about')
     expect(router.state.location.href).toBe('/about?lang=en#team')
     expect(router.state.location.publicHref).toBe('/docs/about?lang=en#team')
-    expect(router.state.location.url.href).toBe(
+    expect(router.state.location.getUrl().href).toBe(
       'https://public.example.com/docs/about?lang=en#team',
     )
   })

@@ -17,12 +17,12 @@ function canStringBeJsonParsed(value: string) {
   const firstCharCode = value.charCodeAt(0)
 
   return (
-    firstCharCode <= 32 ||
-    firstCharCode === 34 ||
-    firstCharCode === 45 ||
-    firstCharCode === 91 ||
-    firstCharCode === 123 ||
-    (firstCharCode >= 48 && firstCharCode <= 57) ||
+    firstCharCode <= 32 || // ASCII control chars through space (' ')
+    firstCharCode === 34 || // double quote ('"')
+    firstCharCode === 45 || // minus sign ('-')
+    firstCharCode === 91 || // opening bracket ('[')
+    firstCharCode === 123 || // opening brace ('{')
+    (firstCharCode >= 48 && firstCharCode <= 57) || // digits ('0' - '9')
     value === 'true' ||
     value === 'false' ||
     value === 'null'

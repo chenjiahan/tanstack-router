@@ -431,25 +431,20 @@ const executeBeforeLoad = (
     }))
   }
 
-  const resolve = (updateFetchingState: boolean = isPending) => {
-    match._nonReactive.beforeLoadPromise?.resolve()
-    match._nonReactive.beforeLoadPromise = undefined
-    if (!updateFetchingState) {
-      return
-    }
-    inner.updateMatch(matchId, (prev) => ({
-      ...prev,
-      isFetching: false,
-    }))
-  }
-
-  const finishSyncBeforeLoad = (beforeLoadContext: any) => {
-    const shouldUpdateMatch =
+  const completeBeforeLoad = (beforeLoadContext: any) => {
+    if (isPending) {
+      inner.updateMatch(matchId, (prev) => ({
+        ...prev,
+        ...(beforeLoadContext !== undefined
+          ? { __beforeLoadContext: beforeLoadContext }
+          : null),
+        isFetching: false,
+      }))
+    } else if (
       beforeLoadContext !== undefined ||
-      !!route.options.loader ||
-      !!route.options.beforeLoad
-
-    if (shouldUpdateMatch) {
+      route.options.loader ||
+      route.options.beforeLoad
+    ) {
       inner.updateMatch(matchId, (prev) => ({
         ...prev,
         abortController,
@@ -460,13 +455,14 @@ const executeBeforeLoad = (
       }))
     }
 
-    resolve(false)
+    match._nonReactive.beforeLoadPromise?.resolve()
+    match._nonReactive.beforeLoadPromise = undefined
   }
 
   // Routes without beforeLoad still need pending timeout setup for loaders, but
   // they do not need to publish a synthetic beforeLoad fetch cycle.
   if (!route.options.beforeLoad) {
-    finishSyncBeforeLoad(undefined)
+    completeBeforeLoad(undefined)
     return
   }
 
@@ -511,11 +507,7 @@ const executeBeforeLoad = (
 
   const updateContext = (beforeLoadContext: any) => {
     if (beforeLoadContext === undefined) {
-      if (isPending) {
-        resolve()
-      } else {
-        finishSyncBeforeLoad(undefined)
-      }
+      completeBeforeLoad(undefined)
       return
     }
     if (isRedirect(beforeLoadContext) || isNotFound(beforeLoadContext)) {
@@ -523,17 +515,7 @@ const executeBeforeLoad = (
       handleSerialError(inner, index, beforeLoadContext, 'BEFORE_LOAD')
     }
 
-    if (isPending) {
-      inner.router.batch(() => {
-        inner.updateMatch(matchId, (prev) => ({
-          ...prev,
-          __beforeLoadContext: beforeLoadContext,
-        }))
-        resolve()
-      })
-    } else {
-      finishSyncBeforeLoad(beforeLoadContext)
-    }
+    completeBeforeLoad(beforeLoadContext)
   }
 
   let beforeLoadContext
@@ -694,8 +676,7 @@ const runLoader = async (
         getLoaderContext(inner, matchPromises, matchId, index, route),
       )
       const loaderResultIsPromise = !!loader && isPromise(loaderResult)
-      let nextLoaderData: unknown = undefined
-      let hasDeferredLoaderData = false
+      let loaderData: unknown = undefined
 
       const willLoadSomething = !!(
         loaderResultIsPromise ||
@@ -715,9 +696,7 @@ const runLoader = async (
       }
 
       if (loader) {
-        const loaderData = loaderResultIsPromise
-          ? await loaderResult
-          : loaderResult
+        loaderData = loaderResultIsPromise ? await loaderResult : loaderResult
 
         handleRedirectAndNotFound(
           inner,
@@ -725,14 +704,11 @@ const runLoader = async (
           loaderData,
         )
         if (loaderData !== undefined) {
-          if (loaderResultIsPromise || willLoadSomething) {
+          if (willLoadSomething) {
             inner.updateMatch(matchId, (prev) => ({
               ...prev,
               loaderData,
             }))
-          } else {
-            nextLoaderData = loaderData
-            hasDeferredLoaderData = true
           }
         }
       }
@@ -749,7 +725,9 @@ const runLoader = async (
       if (route._componentsPromise) await route._componentsPromise
       inner.updateMatch(matchId, (prev) => ({
         ...prev,
-        ...(hasDeferredLoaderData ? { loaderData: nextLoaderData } : null),
+        ...(!willLoadSomething && loaderData !== undefined
+          ? { loaderData }
+          : null),
         error: undefined,
         context: buildMatchContext(inner, index),
         status: 'success',

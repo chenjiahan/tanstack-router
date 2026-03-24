@@ -671,6 +671,10 @@ export type PreloadRouteFn<
     TMaskTo
   > & {
     /**
+     * If `true`, preload errors are rethrown instead of being swallowed.
+     */
+    throwOnError?: boolean
+    /**
      * @internal
      * A **trusted** built location that can be used to redirect to.
      */
@@ -2840,6 +2844,7 @@ export class RouterCore<
         matches,
         location: next,
         preload: true,
+        throwOnError: opts.throwOnError,
         updateMatch: (id, updater) => {
           // Don't update the match if it's currently loaded
           if (activeMatchIds.has(id)) {
@@ -2862,6 +2867,10 @@ export class RouterCore<
           _fromLocation: next,
         })
       }
+      if (opts.throwOnError) {
+        throw err
+      }
+
       if (!isNotFound(err)) {
         // Preload errors are not fatal, but we should still log them
         console.error(err)

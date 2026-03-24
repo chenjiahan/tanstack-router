@@ -35,6 +35,7 @@ type InnerLoadContext = {
   forceStaleReload?: boolean
   onReady?: () => Promise<void>
   sync?: boolean
+  throwOnError?: boolean
 }
 
 const triggerOnReady = (inner: InnerLoadContext): void | Promise<void> => {
@@ -245,7 +246,11 @@ const handleSerialError = (
     }
   })
 
-  if (!inner.preload && !isRedirect(err) && !isNotFound(err)) {
+  if (
+    (!inner.preload || inner.throwOnError) &&
+    !isRedirect(err) &&
+    !isNotFound(err)
+  ) {
     inner.serialError ??= err
   }
 }
@@ -970,6 +975,7 @@ export async function loadMatches(arg: {
   onReady?: () => Promise<void>
   updateMatch: UpdateMatchFn
   sync?: boolean
+  throwOnError?: boolean
 }): Promise<Array<MakeRouteMatch>> {
   const inner: InnerLoadContext = arg
   const matchPromises: Array<Promise<AnyRouteMatch>> = []
@@ -997,7 +1003,7 @@ export async function loadMatches(arg: {
       if (isNotFound(err)) {
         beforeLoadNotFound = err
       } else {
-        if (!inner.preload) throw err
+        if (!inner.preload || inner.throwOnError) throw err
       }
       break
     }
@@ -1055,7 +1061,9 @@ export async function loadMatches(arg: {
 
   const notFoundToThrow =
     firstNotFound ??
-    (beforeLoadNotFound && !inner.preload ? beforeLoadNotFound : undefined)
+    (beforeLoadNotFound && (!inner.preload || inner.throwOnError)
+      ? beforeLoadNotFound
+      : undefined)
 
   let headMaxIndex = inner.serialError
     ? (inner.firstBadMatchIndex ?? 0)
@@ -1179,8 +1187,22 @@ export async function loadMatches(arg: {
     throw notFoundToThrow
   }
 
-  if (inner.serialError && !inner.preload && !inner.onReady) {
+  if (
+    inner.serialError &&
+    (!inner.preload || inner.throwOnError) &&
+    !inner.onReady
+  ) {
     throw inner.serialError
+  }
+
+  if (inner.preload && inner.throwOnError) {
+    const preloadErrorMatch = inner.matches.find((match) => {
+      return inner.router.getMatch(match.id)?.status === 'error'
+    })
+
+    if (preloadErrorMatch) {
+      throw inner.router.getMatch(preloadErrorMatch.id)?.error
+    }
   }
 
   return inner.matches

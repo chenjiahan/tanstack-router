@@ -1329,7 +1329,7 @@ export class RouterCore<
 
     if (__tempLocation && (!__tempKey || __tempKey === this.tempLocationKey)) {
       // Sync up the location keys
-      const parsedTempLocation = parse(__tempLocation) as any
+      const parsedTempLocation = parse(__tempLocation)
       parsedTempLocation.state.key = location.state.key // TODO: Remove in v2 - use __TSR_key instead
       parsedTempLocation.state.__TSR_key = location.state.__TSR_key
       parsedTempLocation.maskedLocation = location
@@ -2131,29 +2131,31 @@ export class RouterCore<
       } = next
 
       if (maskedLocation) {
-        const tempLocation = parseHref(nextHistory.href, {
-          ...nextHistory.state,
-          __tempKey: undefined!,
-          __tempLocation: undefined!,
-          __TSR_key: undefined!,
-          key: undefined!, // TODO: Remove in v2 - use __TSR_key instead
-        })
+        const {
+          __tempKey: _tempKey,
+          __tempLocation: _tempLocation,
+          __TSR_key: _tsrKey,
+          key: _key,
+          ...tempState
+        } = nextHistory.state
+        const tempLocation: HistoryLocation = {
+          href: nextHistory.href,
+          pathname: nextHistory.pathname,
+          search: nextHistory.searchStr,
+          hash: nextHistory.hash ? `#${nextHistory.hash}` : '',
+          state: tempState,
+        }
+
+        const shouldUnmaskOnReload =
+          maskedLocation.unmaskOnReload ?? this.options.unmaskOnReload
 
         nextHistory = {
           ...maskedLocation,
           state: {
             ...maskedLocation.state,
-            __tempKey: undefined,
+            __tempKey: shouldUnmaskOnReload ? this.tempLocationKey : undefined,
             __tempLocation: tempLocation,
           },
-        }
-
-        if (
-          nextHistory.unmaskOnReload ??
-          this.options.unmaskOnReload ??
-          false
-        ) {
-          nextHistory.state.__tempKey = this.tempLocationKey
         }
       }
 

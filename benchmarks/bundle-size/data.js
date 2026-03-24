@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774393054991,
+  "lastUpdate": 1774393388639,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -8173,6 +8173,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/7640f6e3f5d946ca1fd32729050d12642cf38502"
         },
         "date": 1774393053732,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 90155,
+            "unit": "bytes",
+            "extra": "raw=284223; brotli=78268"
+          },
+          {
+            "name": "react-router.full",
+            "value": 93466,
+            "unit": "bytes",
+            "extra": "raw=295478; brotli=81111"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36531,
+            "unit": "bytes",
+            "extra": "raw=110159; brotli=32796"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41035,
+            "unit": "bytes",
+            "extra": "raw=123879; brotli=36742"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 55067,
+            "unit": "bytes",
+            "extra": "raw=158200; brotli=49388"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 60051,
+            "unit": "bytes",
+            "extra": "raw=174048; brotli=53780"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104858,
+            "unit": "bytes",
+            "extra": "raw=333396; brotli=90573"
+          },
+          {
+            "name": "react-start.full",
+            "value": 108370,
+            "unit": "bytes",
+            "extra": "raw=343954; brotli=93650"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50936,
+            "unit": "bytes",
+            "extra": "raw=157455; brotli=44941"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56544,
+            "unit": "bytes",
+            "extra": "raw=173936; brotli=49698"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ed9c43df7ab8c679f6e6833d94651a0a091b9880",
+          "message": "fix: dedupe repeated css assets in the start manifest (#7030)",
+          "timestamp": "2026-03-25T00:00:49+01:00",
+          "tree_id": "a66ec6a87d8a8b89c8d68a6e11f0ccef1cfae8d2",
+          "url": "https://github.com/TanStack/router/commit/ed9c43df7ab8c679f6e6833d94651a0a091b9880"
+        },
+        "date": 1774393386936,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

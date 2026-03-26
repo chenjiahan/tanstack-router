@@ -378,6 +378,7 @@ export const MatchInner = Vue.defineComponent({
       }
 
       if (match.value.status === 'redirected') {
+        const currentMatch = activeMatch.value
         if (!isRedirect(match.value.error)) {
           if (process.env.NODE_ENV !== 'production') {
             throw new Error('Invariant failed: Expected a redirect error')
@@ -385,7 +386,7 @@ export const MatchInner = Vue.defineComponent({
 
           invariant()
         }
-        throw router.getMatch(match.value.id)?._nonReactive.loadPromise
+        throw currentMatch?._nonReactive.loadPromise
       }
 
       if (match.value.status === 'error') {
@@ -414,25 +415,25 @@ export const MatchInner = Vue.defineComponent({
       }
 
       if (match.value.status === 'pending') {
+        const currentMatch = activeMatch.value
         const pendingMinMs =
           route.value.options.pendingMinMs ?? router.options.defaultPendingMinMs
 
-        const routerMatch = router.getMatch(match.value.id)
         if (
           pendingMinMs &&
-          routerMatch &&
-          !routerMatch._nonReactive.minPendingPromise
+          currentMatch &&
+          !currentMatch._nonReactive.minPendingPromise
         ) {
           // Create a promise that will resolve after the minPendingMs
           if (!(isServer ?? router.isServer)) {
             const minPendingPromise = createControlledPromise<void>()
 
-            routerMatch._nonReactive.minPendingPromise = minPendingPromise
+            currentMatch._nonReactive.minPendingPromise = minPendingPromise
 
             setTimeout(() => {
               minPendingPromise.resolve()
               // We've handled the minPendingPromise, so we can delete it
-              routerMatch._nonReactive.minPendingPromise = undefined
+              currentMatch._nonReactive.minPendingPromise = undefined
             }, pendingMinMs)
           }
         }

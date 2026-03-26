@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774544936677,
+  "lastUpdate": 1774553925444,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -8593,6 +8593,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/a1ab2646348cb9fa89c98b2128a65d992925014f"
         },
         "date": 1774544935555,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89631,
+            "unit": "bytes",
+            "extra": "raw=282521; brotli=77925"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92997,
+            "unit": "bytes",
+            "extra": "raw=293975; brotli=80736"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36418,
+            "unit": "bytes",
+            "extra": "raw=109807; brotli=32661"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41004,
+            "unit": "bytes",
+            "extra": "raw=123669; brotli=36791"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54703,
+            "unit": "bytes",
+            "extra": "raw=156843; brotli=49033"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59681,
+            "unit": "bytes",
+            "extra": "raw=172675; brotli=53456"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104476,
+            "unit": "bytes",
+            "extra": "raw=331854; brotli=90389"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107938,
+            "unit": "bytes",
+            "extra": "raw=342451; brotli=93258"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50846,
+            "unit": "bytes",
+            "extra": "raw=157103; brotli=44815"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56488,
+            "unit": "bytes",
+            "extra": "raw=173730; brotli=49730"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "70b222513720d99c6d44bd3f28d1e9b19dc91a43",
+          "message": "fix: Fix file-based route generation when custom `routeToken` or `ind… (#7048)\n\nfix: Fix file-based route generation when custom `routeToken` or `indexToken` values start with regex metacharacters like `+`.\n\nfixes #7036",
+          "timestamp": "2026-03-26T20:36:30+01:00",
+          "tree_id": "a0ecac8365a360a629c4cc45e2d7cfca2c0d127f",
+          "url": "https://github.com/TanStack/router/commit/70b222513720d99c6d44bd3f28d1e9b19dc91a43"
+        },
+        "date": 1774553924058,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

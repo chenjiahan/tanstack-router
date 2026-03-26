@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774544580521,
+  "lastUpdate": 1774544936677,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -8509,6 +8509,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/cf5f5542476137a81515099ad740747e84512f9a"
         },
         "date": 1774544579271,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89631,
+            "unit": "bytes",
+            "extra": "raw=282521; brotli=77925"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92997,
+            "unit": "bytes",
+            "extra": "raw=293975; brotli=80736"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36418,
+            "unit": "bytes",
+            "extra": "raw=109807; brotli=32661"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41004,
+            "unit": "bytes",
+            "extra": "raw=123669; brotli=36791"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54703,
+            "unit": "bytes",
+            "extra": "raw=156843; brotli=49033"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59681,
+            "unit": "bytes",
+            "extra": "raw=172675; brotli=53456"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104476,
+            "unit": "bytes",
+            "extra": "raw=331854; brotli=90389"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107938,
+            "unit": "bytes",
+            "extra": "raw=342451; brotli=93258"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50846,
+            "unit": "bytes",
+            "extra": "raw=157103; brotli=44815"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56488,
+            "unit": "bytes",
+            "extra": "raw=173730; brotli=49730"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@stdd.dev",
+            "name": "육기준",
+            "username": "six-standard"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a1ab2646348cb9fa89c98b2128a65d992925014f",
+          "message": "fix: unexported `ShouldBlockFnLocation` interface causes TS4023 (#7037)\n\nCo-authored-by: yook-gijun <gijun@dreamend.com>",
+          "timestamp": "2026-03-26T18:06:49+01:00",
+          "tree_id": "0559c8143218ecb9a52429a9b189445dab62ed22",
+          "url": "https://github.com/TanStack/router/commit/a1ab2646348cb9fa89c98b2128a65d992925014f"
+        },
+        "date": 1774544935555,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

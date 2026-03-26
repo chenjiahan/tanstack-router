@@ -162,8 +162,9 @@ describe('callbacks', () => {
       const onEnter = vi.fn()
       const onLeave = vi.fn()
       const onStay = vi.fn()
-      const loaderPromises: Array<ReturnType<typeof createControlledPromise<void>>> =
-        []
+      const loaderPromises: Array<
+        ReturnType<typeof createControlledPromise<void>>
+      > = []
 
       const rootRoute = new BaseRootRoute({})
       const fooRoute = new BaseRoute({
@@ -232,8 +233,12 @@ describe('callbacks', () => {
       expect(pendingFooMatch!.id).not.toBe(currentFooMatch!.id)
       expect(pendingFooMatch!.routeId).toBe(currentFooMatch!.routeId)
 
-      const pendingRouteIds = new Set(pendingMatches.map((match) => match.routeId))
-      const activeRouteIds = new Set(currentMatches.map((match) => match.routeId))
+      const pendingRouteIds = new Set(
+        pendingMatches.map((match) => match.routeId),
+      )
+      const activeRouteIds = new Set(
+        currentMatches.map((match) => match.routeId),
+      )
 
       expect(pendingRouteIds.has(fooRoute.id)).toBe(true)
       expect(activeRouteIds.has(fooRoute.id)).toBe(true)

@@ -2475,8 +2475,10 @@ export class RouterCore<
 
                   // Lifecycle-hook identity uses routeId only so that navigating between
                   // different params/deps of the same route fires onStay (not onLeave+onEnter).
-                  const nextPendingRouteIds = pendingRouteIds as Set<string> | null
-                  const nextActiveRouteIds = activeRouteIds as Set<string> | null
+                  const nextPendingRouteIds =
+                    pendingRouteIds as Set<string> | null
+                  const nextActiveRouteIds =
+                    activeRouteIds as Set<string> | null
 
                   if (nextPendingRouteIds && nextActiveRouteIds) {
                     for (const match of currentMatches) {

@@ -37,7 +37,7 @@ export interface BaseConfig {
   >
 }
 
-export const baseConfigSchema: z.ZodType<BaseConfig> = z.object({
+export const baseConfigSchema = z.object({
   target: z.enum(['react', 'solid', 'vue']).optional().default('react'),
   virtualRouteConfig: virtualRootRouteSchema.or(z.string()).optional(),
   routeFilePrefix: z.string().optional(),
@@ -60,7 +60,7 @@ export const baseConfigSchema: z.ZodType<BaseConfig> = z.object({
   pathParamsAllowedCharacters: z
     .array(z.enum([';', ':', '@', '&', '=', '+', '$', ',']))
     .optional(),
-}) as z.ZodType<BaseConfig>
+})
 
 export interface Config extends BaseConfig {
   generatedRouteTree: string
@@ -84,7 +84,7 @@ export interface Config extends BaseConfig {
   importRoutesUsingAbsolutePaths: boolean
 }
 
-export const configSchema: z.ZodType<Config> = baseConfigSchema.extend({
+export const configSchema = baseConfigSchema.extend({
   generatedRouteTree: z.string().optional().default('./src/routeTree.gen.ts'),
   disableTypes: z.boolean().optional().default(false),
   verboseFileRoutes: z.boolean().optional(),
@@ -118,7 +118,7 @@ export const configSchema: z.ZodType<Config> = baseConfigSchema.extend({
   plugins: z.array(z.custom<GeneratorPlugin>()).optional(),
   tmpDir: z.string().optional().default(''),
   importRoutesUsingAbsolutePaths: z.boolean().optional().default(false),
-}) as z.ZodType<Config>
+})
 
 type ResolveParams = {
   configDirectory: string

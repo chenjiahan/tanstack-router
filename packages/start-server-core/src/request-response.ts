@@ -396,7 +396,7 @@ export function clearSession(config: Partial<SessionConfig>): Promise<void> {
   return h3_clearSession(event, { name: 'start', ...config })
 }
 
-export function getResponse(): Response {
+export function getResponse() {
   const event = getH3Event()
   return event.res
 }

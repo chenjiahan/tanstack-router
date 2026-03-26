@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774553925444,
+  "lastUpdate": 1774569434458,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -8726,6 +8726,90 @@ window.BENCHMARK_DATA = {
             "value": 107938,
             "unit": "bytes",
             "extra": "raw=342451; brotli=93258"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50846,
+            "unit": "bytes",
+            "extra": "raw=157103; brotli=44815"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56488,
+            "unit": "bytes",
+            "extra": "raw=173730; brotli=49730"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5ca661c2f8a7e50167b4112c64aa06cef4148ea9",
+          "message": "fix: dont use script tag for OnRendered (#7054)\n\nCo-authored-by: autofix-ci[bot] <114827586+autofix-ci[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-27T00:54:57+01:00",
+          "tree_id": "1e3b96811bb60a7812c94505fc85c7603b74f470",
+          "url": "https://github.com/TanStack/router/commit/5ca661c2f8a7e50167b4112c64aa06cef4148ea9"
+        },
+        "date": 1774569432952,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89631,
+            "unit": "bytes",
+            "extra": "raw=282492; brotli=77884"
+          },
+          {
+            "name": "react-router.full",
+            "value": 93016,
+            "unit": "bytes",
+            "extra": "raw=293947; brotli=80861"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36418,
+            "unit": "bytes",
+            "extra": "raw=109807; brotli=32661"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41004,
+            "unit": "bytes",
+            "extra": "raw=123669; brotli=36791"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54703,
+            "unit": "bytes",
+            "extra": "raw=156843; brotli=49033"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59681,
+            "unit": "bytes",
+            "extra": "raw=172675; brotli=53456"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104500,
+            "unit": "bytes",
+            "extra": "raw=331826; brotli=90417"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107956,
+            "unit": "bytes",
+            "extra": "raw=342423; brotli=93319"
           },
           {
             "name": "solid-start.minimal",

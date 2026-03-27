@@ -156,7 +156,7 @@ export class RouteApi<
   }
 
   Link: LinkComponentRoute<RouteTypesById<TRouter, TId>['fullPath']> =
-    React.forwardRef((props, ref: React.ForwardedRef<HTMLAnchorElement>) => {
+    React.forwardRef((props: any, ref: React.ForwardedRef<HTMLAnchorElement>) => {
       const router = useRouter()
       const fullPath = router.routesById[this.id as string].fullPath
       return <Link ref={ref} from={fullPath as never} {...props} />
@@ -303,7 +303,7 @@ export class Route<
   }
 
   Link: LinkComponentRoute<TFullPath> = React.forwardRef(
-    (props, ref: React.ForwardedRef<HTMLAnchorElement>) => {
+    (props: any, ref: React.ForwardedRef<HTMLAnchorElement>) => {
       return <Link ref={ref} from={this.fullPath as never} {...props} />
     },
   ) as unknown as LinkComponentRoute<TFullPath>

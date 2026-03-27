@@ -6,10 +6,11 @@
     "isolatedDeclarations": true,
     "allowJs": false,
     "checkJs": false,
-    "outDir": "dist/source",
+    "declarationDir": "dist/esm",
     "noEmit": false,
+    "composite": true,
     "declaration": true,
-    "sourceMap": true,
+    "emitDeclarationOnly": true,
     "paths": {
       "@tanstack/router-devtools-core": ["../../router-devtools-core/src"]
     }

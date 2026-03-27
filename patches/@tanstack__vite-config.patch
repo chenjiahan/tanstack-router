@@ -1,5 +1,5 @@
 diff --git a/dist/index.js b/dist/index.js
-index 2eb23eb2503d534e36c40f0578ced4d904960418..1b82cf1d480a155acfbc004c12a8775e0b83c1f8 100644
+index 2eb23eb2503d534e36c40f0578ced4d904960418..fa1029452dd0155d7af0cb6585cd9e1b6c135e1e 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -1,14 +1,8 @@
@@ -17,7 +17,7 @@ index 2eb23eb2503d534e36c40f0578ced4d904960418..1b82cf1d480a155acfbc004c12a8775e
  const tanstackViteConfig = (options) => {
  	const outDir = options.outDir ?? "dist";
  	const cjs = options.cjs ?? true;
-@@ -20,60 +14,6 @@ const tanstackViteConfig = (options) => {
+@@ -20,63 +14,10 @@ const tanstackViteConfig = (options) => {
  				except: options.bundledDeps ?? []
  			}),
  			options.tsconfigPath ? tsconfigPaths({ projects: [options.tsconfigPath] }) : void 0,
@@ -78,8 +78,13 @@ index 2eb23eb2503d534e36c40f0578ced4d904960418..1b82cf1d480a155acfbc004c12a8775e
  		],
  		build: {
  			outDir,
-@@ -94,4 +34,3 @@ const tanstackViteConfig = (options) => {
++			emptyOutDir: false,
+ 			minify: false,
+ 			sourcemap: true,
+ 			lib: {
+@@ -94,4 +35,3 @@ const tanstackViteConfig = (options) => {
  
  //#endregion
  export { tanstackViteConfig };
+\ No newline at end of file
 -//# sourceMappingURL=index.js.map

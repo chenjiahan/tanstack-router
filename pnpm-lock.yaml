@@ -59,7 +59,7 @@ overrides:
 
 patchedDependencies:
   '@tanstack/vite-config':
-    hash: 37885da3e08f3e6c791a33eaa701fb2d5c2cb1d10175e740c0892b7deead66a8
+    hash: c85463720b42db3401283eeaed1f0f233a6982ad82af7adeb9c82dbd1155c5a3
     path: patches/@tanstack__vite-config.patch
 
 importers:
@@ -92,7 +92,7 @@ importers:
         version: 5.90.19(react@19.2.3)
       '@tanstack/vite-config':
         specifier: 0.5.2
-        version: 0.5.2(patch_hash=37885da3e08f3e6c791a33eaa701fb2d5c2cb1d10175e740c0892b7deead66a8)(@types/node@25.0.9)(typescript@6.0.2)(vite@8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1))
+        version: 0.5.2(patch_hash=c85463720b42db3401283eeaed1f0f233a6982ad82af7adeb9c82dbd1155c5a3)(@types/node@25.0.9)(typescript@6.0.2)(vite@8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1))
       '@types/node':
         specifier: 25.0.9
         version: 25.0.9
@@ -31064,7 +31064,7 @@ snapshots:
 
   '@tanstack/virtual-core@3.13.13': {}
 
-  '@tanstack/vite-config@0.5.2(patch_hash=37885da3e08f3e6c791a33eaa701fb2d5c2cb1d10175e740c0892b7deead66a8)(@types/node@25.0.9)(typescript@6.0.2)(vite@8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1))':
+  '@tanstack/vite-config@0.5.2(patch_hash=c85463720b42db3401283eeaed1f0f233a6982ad82af7adeb9c82dbd1155c5a3)(@types/node@25.0.9)(typescript@6.0.2)(vite@8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1))':
     dependencies:
       vite: 8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1)
       vite-plugin-dts: 4.2.3(@types/node@25.0.9)(rollup@4.55.3)(typescript@6.0.2)(vite@8.0.3(@types/node@25.0.9)(esbuild@0.27.4)(jiti@2.6.1)(sass-embedded@1.97.2)(sass@1.97.2)(terser@5.37.0)(tsx@4.20.3)(yaml@2.8.1))

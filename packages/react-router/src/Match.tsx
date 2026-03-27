@@ -19,6 +19,7 @@ import { ScrollRestoration } from './scroll-restoration'
 import { ClientOnly } from './ClientOnly'
 import type {
   AnyRoute,
+  ControlledPromise,
   ParsedLocation,
   RootRouteOptions,
 } from '@tanstack/router-core'
@@ -339,6 +340,16 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     return out
   }
 
+  return <MatchInnerClient matchId={matchId} router={router} />
+})
+
+function MatchInnerClient({
+  matchId,
+  router,
+}: {
+  matchId: string
+  router: ReturnType<typeof useRouter>
+}) {
   const matchStore = router.stores.activeMatchStoresById.get(matchId)
   if (!matchStore) {
     if (process.env.NODE_ENV !== 'production') {
@@ -349,11 +360,9 @@ export const MatchInner = React.memo(function MatchInnerImpl({
 
     invariant()
   }
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const match = useStore(matchStore, (value) => value)
   const routeId = match.routeId as string
   const route = router.routesById[routeId] as AnyRoute
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const key = React.useMemo(() => {
     const remountFn =
       (router.routesById[routeId] as AnyRoute).options.remountDeps ??
@@ -374,7 +383,6 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     router.routesById,
   ])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const out = React.useMemo(() => {
     const Comp = route.options.component ?? router.options.defaultComponent
     if (Comp) {
@@ -382,6 +390,38 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     }
     return <Outlet />
   }, [key, route.options.component, router.options.defaultComponent])
+
+  const suspensePromiseRef = React.useRef<ControlledPromise<void> | undefined>(
+    undefined,
+  )
+
+  React.useEffect(() => {
+    if (match.status !== 'pending' && match.status !== 'redirected') {
+      suspensePromiseRef.current?.resolve()
+      suspensePromiseRef.current = undefined
+    }
+  }, [match.status])
+
+  React.useEffect(() => {
+    return () => {
+      suspensePromiseRef.current?.resolve()
+      suspensePromiseRef.current = undefined
+    }
+  }, [match.id])
+
+  const getSuspensePromise = React.useCallback(() => {
+    const loadPromise = router.getMatch(match.id)?._nonReactive.loadPromise
+
+    if (loadPromise?.status === 'pending') {
+      return loadPromise
+    }
+
+    if (!suspensePromiseRef.current) {
+      suspensePromiseRef.current = createControlledPromise<void>()
+    }
+
+    return suspensePromiseRef.current
+  }, [router, match.id])
 
   if (match._displayPending) {
     throw router.getMatch(match.id)?._nonReactive.displayPendingPromise
@@ -413,7 +453,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
         }
       }
     }
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getSuspensePromise()
   }
 
   if (match.status === 'notFound') {
@@ -442,7 +482,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     //   false,
     //   'Tried to render a redirected route match! This is a weird circumstance, please file an issue!',
     // )
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getSuspensePromise()
   }
 
   if (match.status === 'error') {
@@ -471,7 +511,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   }
 
   return out
-})
+}
 
 /**
  * Render the next child match in the route tree. Typically used inside

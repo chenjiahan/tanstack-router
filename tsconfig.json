@@ -9,6 +9,7 @@
     "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "isolatedDeclarations": true,
     "isolatedModules": true,
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",

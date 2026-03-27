@@ -1208,7 +1208,7 @@ function preloadRouteComponents(
 export function loadRouteChunk(
   route: AnyRoute,
   componentTypesToLoad: Array<RouteComponentType> = componentTypes,
-) {
+): Promise<void> | undefined {
   if (!route._lazyLoaded && route._lazyPromise === undefined) {
     if (route.lazyFn) {
       route._lazyPromise = route.lazyFn().then((lazyRoute) => {
@@ -1263,7 +1263,7 @@ function makeMaybe<TValue, TError>(
   return { status: 'success' as const, value }
 }
 
-export function routeNeedsPreload(route: AnyRoute) {
+export function routeNeedsPreload(route: AnyRoute): boolean {
   for (const componentType of componentTypes) {
     if ((route.options[componentType] as any)?.preload) {
       return true

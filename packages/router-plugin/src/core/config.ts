@@ -3,6 +3,7 @@ import {
   configSchema as generatorConfigSchema,
   getConfig as getGeneratorConfig,
 } from '@tanstack/router-generator'
+import type { Config as GeneratorConfig } from '@tanstack/router-generator'
 import type {
   CreateFileRoute,
   RegisteredRouter,
@@ -10,7 +11,7 @@ import type {
 } from '@tanstack/router-core'
 import type { CodeSplitGroupings } from './constants'
 
-const _splitGroupingsSchema = z
+const _splitGroupingsSchema: z.ZodType<CodeSplitGroupings | undefined> = z
   .array(
     z.array(
       z.union([
@@ -86,7 +87,20 @@ type FileRouteKeys = keyof (Parameters<
 >[0] & {})
 export type DeletableNodes = FileRouteKeys | (string & {})
 
-const _configSchema = generatorConfigSchema.extend({
+export interface Config extends GeneratorConfig {
+  enableRouteGeneration?: boolean
+  codeSplittingOptions?: CodeSplittingOptions
+  plugin?: {
+    vite?: {
+      environmentName?: string
+    }
+  }
+}
+
+export type ConfigInput = Partial<Config>
+export type ConfigOutput = Config
+
+export const configSchema: z.ZodObject<z.ZodRawShape, 'strip', z.ZodTypeAny, Config> = generatorConfigSchema.extend({
   enableRouteGeneration: z.boolean().optional(),
   codeSplittingOptions: z
     .custom<CodeSplittingOptions>((v) => {
@@ -102,8 +116,7 @@ const _configSchema = generatorConfigSchema.extend({
         .optional(),
     })
     .optional(),
-})
-export const configSchema: typeof _configSchema = _configSchema
+}) as any
 
 export const getConfig = (
   inlineConfig: Partial<Config>,
@@ -113,7 +126,3 @@ export const getConfig = (
 
   return configSchema.parse({ ...inlineConfig, ...config })
 }
-
-export type Config = z.infer<typeof configSchema>
-export type ConfigInput = z.input<typeof configSchema>
-export type ConfigOutput = z.output<typeof configSchema>

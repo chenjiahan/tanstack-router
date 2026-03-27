@@ -1,8 +1,9 @@
 import { createSerializationAdapter } from '@tanstack/router-core'
 import { TSS_SERVER_FUNCTION } from '@tanstack/start-client-core'
 import { getServerFnById } from '../getServerFnById'
+import type { SerializationAdapter } from '@tanstack/router-core'
 
-export const ServerFunctionSerializationAdapter = createSerializationAdapter({
+export const ServerFunctionSerializationAdapter: SerializationAdapter<{ serverFnMeta: { id: string } }, { functionId: string }, never> = createSerializationAdapter({
   key: '$TSS/serverfn',
   test: (v): v is { serverFnMeta: { id: string } } => {
     if (typeof v !== 'function') return false

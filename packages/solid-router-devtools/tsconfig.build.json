@@ -3,6 +3,9 @@
   "compilerOptions": {
     "moduleResolution": "Bundler",
     "rootDir": "src",
+    "isolatedDeclarations": true,
+    "allowJs": false,
+    "checkJs": false,
     "outDir": "dist/source",
     "noEmit": false,
     "declaration": true,

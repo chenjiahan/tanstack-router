@@ -576,7 +576,11 @@ export class Generator {
     acc: HandleNodeAccumulator
     routeFileResult: Array<RouteNode>
     config?: Partial<Config>
-  }) {
+  }): {
+    routeTreeContent: string
+    routeTree: Array<RouteNode>
+    routeNodes: Array<RouteNode>
+  } {
     const config = { ...this.config, ...(opts.config || {}) }
 
     const { rootRouteNode, acc } = opts

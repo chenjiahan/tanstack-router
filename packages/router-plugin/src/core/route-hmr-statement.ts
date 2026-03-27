@@ -160,7 +160,7 @@ function handleRouteUpdate(
 
 const handleRouteUpdateStr = handleRouteUpdate.toString()
 
-export function createRouteHmrStatement(stableRouteOptionKeys: Array<string>) {
+export function createRouteHmrStatement(stableRouteOptionKeys: Array<string>): import('@babel/types').Statement {
   return template.statement(
     `
 if (import.meta.hot) {

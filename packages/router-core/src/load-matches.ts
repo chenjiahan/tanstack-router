@@ -839,9 +839,7 @@ const loadRouteMatch = async (
           await runLoader(inner, matchPromises, matchId, index, route)
           const match = inner.router.getMatch(matchId)!
           match._nonReactive.loaderPromise?.resolve()
-          if (match.status !== 'pending') {
-            match._nonReactive.loadPromise?.resolve()
-          }
+          match._nonReactive.loadPromise?.resolve()
           match._nonReactive.loaderPromise = undefined
         } catch (err) {
           if (isRedirect(err)) {
@@ -940,9 +938,7 @@ const loadRouteMatch = async (
   const match = inner.router.getMatch(matchId)!
   if (!loaderIsRunningAsync) {
     match._nonReactive.loaderPromise?.resolve()
-    if (match.status !== 'pending') {
-      match._nonReactive.loadPromise?.resolve()
-    }
+    match._nonReactive.loadPromise?.resolve()
   }
 
   clearTimeout(match._nonReactive.pendingTimeout)

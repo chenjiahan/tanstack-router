@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774800649681,
+  "lastUpdate": 1774825174320,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -9074,6 +9074,90 @@ window.BENCHMARK_DATA = {
             "value": 56425,
             "unit": "bytes",
             "extra": "raw=173592; brotli=49576"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "44094871+nlynzaad@users.noreply.github.com",
+            "name": "Nico Lynzaad",
+            "username": "nlynzaad"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "30835cb8e935b740c92fa95909a073e644dde530",
+          "message": "fix(router-core): align calculation of publicHref in parseLocation and buildLocation (#7069)\n\n* align publicHref\n\n* add tests\n\n* ci: apply automated fixes\n\n* revert changes\n\n* revert changes\n\n* ci: apply automated fixes [Self-Healing CI Rerun]\n\n* ci: apply automated fixes\n\n---------\n\nCo-authored-by: autofix-ci[bot] <114827586+autofix-ci[bot]@users.noreply.github.com>\nCo-authored-by: nx-cloud[bot] <71083854+nx-cloud[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-30T00:57:24+02:00",
+          "tree_id": "6d55e570f544bd5ec712e4fb503c3bd5a7f3dd4c",
+          "url": "https://github.com/TanStack/router/commit/30835cb8e935b740c92fa95909a073e644dde530"
+        },
+        "date": 1774825173270,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89569,
+            "unit": "bytes",
+            "extra": "raw=282294; brotli=77757"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92941,
+            "unit": "bytes",
+            "extra": "raw=293749; brotli=80759"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36362,
+            "unit": "bytes",
+            "extra": "raw=109609; brotli=32636"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40945,
+            "unit": "bytes",
+            "extra": "raw=123471; brotli=36750"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54644,
+            "unit": "bytes",
+            "extra": "raw=156645; brotli=49028"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59622,
+            "unit": "bytes",
+            "extra": "raw=172477; brotli=53333"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104443,
+            "unit": "bytes",
+            "extra": "raw=331692; brotli=90285"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107893,
+            "unit": "bytes",
+            "extra": "raw=342289; brotli=93194"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50802,
+            "unit": "bytes",
+            "extra": "raw=156969; brotli=44804"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56425,
+            "unit": "bytes",
+            "extra": "raw=173596; brotli=49620"
           }
         ]
       }

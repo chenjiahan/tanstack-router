@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774825174320,
+  "lastUpdate": 1774887074645,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -9097,6 +9097,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/30835cb8e935b740c92fa95909a073e644dde530"
         },
         "date": 1774825173270,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89569,
+            "unit": "bytes",
+            "extra": "raw=282294; brotli=77757"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92941,
+            "unit": "bytes",
+            "extra": "raw=293749; brotli=80759"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36362,
+            "unit": "bytes",
+            "extra": "raw=109609; brotli=32636"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40945,
+            "unit": "bytes",
+            "extra": "raw=123471; brotli=36750"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54644,
+            "unit": "bytes",
+            "extra": "raw=156645; brotli=49028"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59622,
+            "unit": "bytes",
+            "extra": "raw=172477; brotli=53333"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104443,
+            "unit": "bytes",
+            "extra": "raw=331692; brotli=90285"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107893,
+            "unit": "bytes",
+            "extra": "raw=342289; brotli=93194"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50802,
+            "unit": "bytes",
+            "extra": "raw=156969; brotli=44804"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56425,
+            "unit": "bytes",
+            "extra": "raw=173596; brotli=49620"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f8351a8d7aa9f5a341377f96966451892acb39f1",
+          "message": "fix: initialize import.meta.hot.data before storing stable split componts (#7074)\n\n* fix: initialize import.meta.hot.data before storing stable split components\n\nfixes #7073\n\n* fix: initialize import.meta.hot.data before storing stable split components\n\nfixes #7073 [Self-Healing CI Rerun]\n\n---------\n\nCo-authored-by: nx-cloud[bot] <71083854+nx-cloud[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-30T18:08:52+02:00",
+          "tree_id": "b6c6ce69df233d8c836097396a892f089ca7d731",
+          "url": "https://github.com/TanStack/router/commit/f8351a8d7aa9f5a341377f96966451892acb39f1"
+        },
+        "date": 1774887073002,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

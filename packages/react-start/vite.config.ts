@@ -36,6 +36,7 @@ export default mergeConfig(
       './src/rsc.rsc.ts',
       './src/rsc/serialization/server.ts',
       './src/rsc/serialization/client.ts',
+      './src/plugin/rsbuild.ts',
       './src/plugin/vite.ts',
       './src/server-only.ts',
       './src/client-only.ts',

@@ -2,4 +2,4 @@
 '@tanstack/start-server-core': patch
 ---
 
-fix: reject malformed percent-encoded paths with 400
+fix: catch URIError from H3Event construction and respond with 400

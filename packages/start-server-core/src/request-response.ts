@@ -128,10 +128,15 @@ class MalformedRequestPathError extends Error {
 function assertValidRequestPath(request: Request): void {
   const pathname = new URL(request.url).pathname
 
+  let decoded: string
   try {
-    decodeURI(pathname)
+    decoded = decodeURI(pathname)
   } catch (cause) {
     throw new MalformedRequestPathError(pathname, { cause })
+  }
+
+  if (decoded.length > pathname.length) {
+    throw new MalformedRequestPathError(pathname)
   }
 }
 

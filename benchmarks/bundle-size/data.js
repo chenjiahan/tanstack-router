@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775849872574,
+  "lastUpdate": 1775853553196,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -9734,6 +9734,90 @@ window.BENCHMARK_DATA = {
             "value": 107942,
             "unit": "bytes",
             "extra": "raw=342378; brotli=93268"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50897,
+            "unit": "bytes",
+            "extra": "raw=157295; brotli=44820"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56540,
+            "unit": "bytes",
+            "extra": "raw=173921; brotli=49751"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "70ec1da1ed8aa252fae67716f69fe8520ecf91b0",
+          "message": "fix(react-router): clear stale route errors on navigation (#7136)\n\nCo-authored-by: schiller-manuel <6340397+schiller-manuel@users.noreply.github.com>\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>",
+          "timestamp": "2026-04-10T22:37:04+02:00",
+          "tree_id": "902e4fdd6db7c21ecf4da4a3177a47657c266da7",
+          "url": "https://github.com/TanStack/router/commit/70ec1da1ed8aa252fae67716f69fe8520ecf91b0"
+        },
+        "date": 1775853552209,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89606,
+            "unit": "bytes",
+            "extra": "raw=282310; brotli=77902"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92947,
+            "unit": "bytes",
+            "extra": "raw=293767; brotli=80843"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36457,
+            "unit": "bytes",
+            "extra": "raw=109935; brotli=32711"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41034,
+            "unit": "bytes",
+            "extra": "raw=123797; brotli=36823"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54747,
+            "unit": "bytes",
+            "extra": "raw=156837; brotli=49154"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59756,
+            "unit": "bytes",
+            "extra": "raw=172670; brotli=53503"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104449,
+            "unit": "bytes",
+            "extra": "raw=331710; brotli=90275"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107930,
+            "unit": "bytes",
+            "extra": "raw=342307; brotli=93217"
           },
           {
             "name": "solid-start.minimal",

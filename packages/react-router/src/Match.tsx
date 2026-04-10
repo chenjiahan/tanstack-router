@@ -167,7 +167,10 @@ function MatchView({
             errorComponent={routeErrorComponent || ErrorComponent}
             onCatch={(error, errorInfo) => {
               // Forward not found errors (we don't want to show the error component for these)
-              if (isNotFound(error)) throw error
+              if (isNotFound(error)) {
+                error.routeId ??= matchState.routeId as any
+                throw error
+              }
               if (process.env.NODE_ENV !== 'production') {
                 console.warn(`Warning: Error in route match: ${matchId}`)
               }
@@ -176,6 +179,8 @@ function MatchView({
           >
             <ResolvedNotFoundBoundary
               fallback={(error) => {
+                error.routeId ??= matchState.routeId as any
+
                 // If the current not found handler doesn't exist or it has a
                 // route ID which doesn't match the current route, rethrow the error
                 if (
@@ -254,6 +259,22 @@ export const MatchInner = React.memo(function MatchInnerImpl({
 }): any {
   const router = useRouter()
 
+  const getMatchPromise = (
+    match: {
+      id: string
+      _nonReactive: {
+        displayPendingPromise?: Promise<void>
+        minPendingPromise?: Promise<void>
+        loadPromise?: Promise<void>
+      }
+    },
+    key: 'displayPendingPromise' | 'minPendingPromise' | 'loadPromise',
+  ) => {
+    return (
+      router.getMatch(match.id)?._nonReactive[key] ?? match._nonReactive[key]
+    )
+  }
+
   if (isServer ?? router.isServer) {
     const match = router.stores.activeMatchStoresById.get(matchId)?.state
     if (!match) {
@@ -282,15 +303,15 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     const out = Comp ? <Comp key={key} /> : <Outlet />
 
     if (match._displayPending) {
-      throw router.getMatch(match.id)?._nonReactive.displayPendingPromise
+      throw getMatchPromise(match, 'displayPendingPromise')
     }
 
     if (match._forcePending) {
-      throw router.getMatch(match.id)?._nonReactive.minPendingPromise
+      throw getMatchPromise(match, 'minPendingPromise')
     }
 
     if (match.status === 'pending') {
-      throw router.getMatch(match.id)?._nonReactive.loadPromise
+      throw getMatchPromise(match, 'loadPromise')
     }
 
     if (match.status === 'notFound') {
@@ -312,7 +333,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
 
         invariant()
       }
-      throw router.getMatch(match.id)?._nonReactive.loadPromise
+      throw getMatchPromise(match, 'loadPromise')
     }
 
     if (match.status === 'error') {
@@ -379,11 +400,11 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   }, [key, route.options.component, router.options.defaultComponent])
 
   if (match._displayPending) {
-    throw router.getMatch(match.id)?._nonReactive.displayPendingPromise
+    throw getMatchPromise(match, 'displayPendingPromise')
   }
 
   if (match._forcePending) {
-    throw router.getMatch(match.id)?._nonReactive.minPendingPromise
+    throw getMatchPromise(match, 'minPendingPromise')
   }
 
   // see also hydrate() in packages/router-core/src/ssr/ssr-client.ts
@@ -408,7 +429,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
         }
       }
     }
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getMatchPromise(match, 'loadPromise')
   }
 
   if (match.status === 'notFound') {
@@ -423,8 +444,10 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   }
 
   if (match.status === 'redirected') {
-    // Redirects should be handled by the router transition. If we happen to
-    // encounter a redirect here, it's a bug. Let's warn, but render nothing.
+    // A match can be observed as redirected during an in-flight transition,
+    // especially when pending UI is already rendering. Suspend on the match's
+    // load promise so React can abandon this stale render and continue the
+    // redirect transition.
     if (!isRedirect(match.error)) {
       if (process.env.NODE_ENV !== 'production') {
         throw new Error('Invariant failed: Expected a redirect error')
@@ -433,11 +456,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
       invariant()
     }
 
-    // warning(
-    //   false,
-    //   'Tried to render a redirected route match! This is a weird circumstance, please file an issue!',
-    // )
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getMatchPromise(match, 'loadPromise')
   }
 
   if (match.status === 'error') {

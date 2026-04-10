@@ -11,7 +11,7 @@ import { isServer } from '@tanstack/router-core/isServer'
 import { Dynamic } from 'solid-js/web'
 import { CatchBoundary, ErrorComponent } from './CatchBoundary'
 import { useRouter } from './useRouter'
-import { CatchNotFound } from './not-found'
+import { CatchNotFound, getNotFound } from './not-found'
 import { nearestMatchContext } from './matchContext'
 import { SafeFragment } from './SafeFragment'
 import { renderRouteNotFound } from './renderRouteNotFound'
@@ -117,7 +117,12 @@ export const Match = (props: { matchId: string }) => {
                   errorComponent={routeErrorComponent() || ErrorComponent}
                   onCatch={(error: Error) => {
                     // Forward not found errors (we don't want to show the error component for these)
-                    if (isNotFound(error)) throw error
+                    const notFoundError = getNotFound(error)
+                    if (notFoundError) {
+                      notFoundError.routeId ??= currentMatchState()
+                        .routeId as any
+                      throw notFoundError
+                    }
                     if (process.env.NODE_ENV !== 'production') {
                       console.warn(
                         `Warning: Error in route match: ${currentMatchState().routeId}`,
@@ -129,20 +134,26 @@ export const Match = (props: { matchId: string }) => {
                   <Dynamic
                     component={ResolvedNotFoundBoundary()}
                     fallback={(error: any) => {
+                      const notFoundError = getNotFound(error) ?? error
+
+                      notFoundError.routeId ??= currentMatchState()
+                        .routeId as any
+
                       // If the current not found handler doesn't exist or it has a
                       // route ID which doesn't match the current route, rethrow the error
                       if (
                         !routeNotFoundComponent() ||
-                        (error.routeId &&
-                          error.routeId !== currentMatchState().routeId) ||
-                        (!error.routeId && !route().isRoot)
+                        (notFoundError.routeId &&
+                          notFoundError.routeId !==
+                            currentMatchState().routeId) ||
+                        (!notFoundError.routeId && !route().isRoot)
                       )
-                        throw error
+                        throw notFoundError
 
                       return (
                         <Dynamic
                           component={routeNotFoundComponent()}
-                          {...error}
+                          {...notFoundError}
                         />
                       )
                     }}
@@ -262,6 +273,22 @@ export const MatchInner = (): any => {
           return <Outlet />
         }
 
+        const getLoadPromise = (
+          matchId: string,
+          fallbackMatch:
+            | {
+                _nonReactive: {
+                  loadPromise?: Promise<void>
+                }
+              }
+            | undefined,
+        ) => {
+          return (
+            router.getMatch(matchId)?._nonReactive.loadPromise ??
+            fallbackMatch?._nonReactive.loadPromise
+          )
+        }
+
         const keyedOut = () => (
           <Solid.Show when={componentKey()} keyed>
             {(_key) => out()}
@@ -364,6 +391,9 @@ export const MatchInner = (): any => {
             </Solid.Match>
             <Solid.Match when={currentMatch().status === 'redirected'}>
               {(_) => {
+                const matchId = currentMatch().id
+                const routerMatch = router.getMatch(matchId)
+
                 if (!isRedirect(currentMatch().error)) {
                   if (process.env.NODE_ENV !== 'production') {
                     throw new Error(
@@ -376,8 +406,7 @@ export const MatchInner = (): any => {
 
                 const [loaderResult] = Solid.createResource(async () => {
                   await new Promise((r) => setTimeout(r, 0))
-                  return router.getMatch(currentMatch().id)?._nonReactive
-                    .loadPromise
+                  return getLoadPromise(matchId, routerMatch)
                 })
 
                 return <>{loaderResult()}</>

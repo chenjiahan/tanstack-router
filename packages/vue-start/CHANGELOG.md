@@ -1,5 +1,86 @@
 # @tanstack/vue-start
 
+## 1.167.19
+
+### Patch Changes
+
+- Updated dependencies [[`540d221`](https://github.com/TanStack/router/commit/540d22100d33415a1ddc9eb193f6aeb8184da77f)]:
+  - @tanstack/vue-router@1.168.12
+  - @tanstack/vue-start-client@1.166.27
+  - @tanstack/vue-start-server@1.166.27
+
+## 1.167.18
+
+### Patch Changes
+
+- Updated dependencies [[`b29d64d`](https://github.com/TanStack/router/commit/b29d64de0c400183114c12f82183f80e37d9ea5c)]:
+  - @tanstack/vue-router@1.168.11
+  - @tanstack/vue-start-client@1.166.26
+  - @tanstack/vue-start-server@1.166.26
+
+## 1.167.17
+
+### Patch Changes
+
+- Updated dependencies [[`4b9ed6c`](https://github.com/TanStack/router/commit/4b9ed6c5cb5437df8607c605728c8338dd2eb02c)]:
+  - @tanstack/vue-router@1.168.10
+  - @tanstack/vue-start-client@1.166.25
+  - @tanstack/vue-start-server@1.166.25
+
+## 1.167.16
+
+### Patch Changes
+
+- Updated dependencies [[`f7e9c5e`](https://github.com/TanStack/router/commit/f7e9c5e323793d1b28c96871819c265fd28ae397)]:
+  - @tanstack/start-client-core@1.167.10
+  - @tanstack/start-server-core@1.167.10
+  - @tanstack/start-plugin-core@1.167.18
+  - @tanstack/vue-start-client@1.166.24
+  - @tanstack/vue-start-server@1.166.24
+
+## 1.167.15
+
+### Patch Changes
+
+- Updated dependencies [[`796406d`](https://github.com/TanStack/router/commit/796406da66cfb12b518bb3ca326c9d541368fb06)]:
+  - @tanstack/vue-router@1.168.9
+  - @tanstack/start-client-core@1.167.9
+  - @tanstack/start-plugin-core@1.167.17
+  - @tanstack/start-server-core@1.167.9
+  - @tanstack/vue-start-client@1.166.23
+  - @tanstack/vue-start-server@1.166.23
+
+## 1.167.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-client-core@1.167.8
+  - @tanstack/start-plugin-core@1.167.16
+  - @tanstack/start-server-core@1.167.8
+  - @tanstack/vue-router@1.168.8
+  - @tanstack/vue-start-client@1.166.22
+  - @tanstack/vue-start-server@1.166.22
+
+## 1.167.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.15
+
+## 1.167.12
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-client-core@1.167.7
+  - @tanstack/start-plugin-core@1.167.14
+  - @tanstack/start-server-core@1.167.7
+  - @tanstack/vue-router@1.168.7
+  - @tanstack/vue-start-client@1.166.21
+  - @tanstack/vue-start-server@1.166.21
+
 ## 1.167.11
 
 ### Patch Changes

@@ -1,5 +1,38 @@
 # @tanstack/router-plugin
 
+## 1.167.12
+
+### Patch Changes
+
+- Updated dependencies [[`796406d`](https://github.com/TanStack/router/commit/796406da66cfb12b518bb3ca326c9d541368fb06)]:
+  - @tanstack/router-core@1.168.9
+  - @tanstack/react-router@1.168.10
+  - @tanstack/router-generator@1.166.24
+
+## 1.167.11
+
+### Patch Changes
+
+- Updated dependencies [[`2d1ec86`](https://github.com/TanStack/router/commit/2d1ec865a446926f7db6e29dbbde82d265de6d36)]:
+  - @tanstack/router-core@1.168.8
+  - @tanstack/react-router@1.168.9
+  - @tanstack/router-generator@1.166.23
+
+## 1.167.10
+
+### Patch Changes
+
+- Initialize `import.meta.hot.data` before storing stable split components so Vitest does not crash when HMR data is missing. ([#7074](https://github.com/TanStack/router/pull/7074))
+
+## 1.167.9
+
+### Patch Changes
+
+- Updated dependencies [[`6ee0e79`](https://github.com/TanStack/router/commit/6ee0e795b085651beb2f1ac6503cdbd7eaffedd1)]:
+  - @tanstack/router-core@1.168.7
+  - @tanstack/react-router@1.168.8
+  - @tanstack/router-generator@1.166.22
+
 ## 1.167.8
 
 ### Patch Changes

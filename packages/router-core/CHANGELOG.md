@@ -1,5 +1,23 @@
 # @tanstack/router-core
 
+## 1.168.9
+
+### Patch Changes
+
+- Preserve component-thrown `notFound()` errors through framework error boundaries so route `notFoundComponent` handlers render without requiring an explicit `routeId`. ([#7077](https://github.com/TanStack/router/pull/7077))
+
+## 1.168.8
+
+### Patch Changes
+
+- Fix preload from continuing into child `beforeLoad` and `head` handlers after a parent `beforeLoad` fails. ([#7075](https://github.com/TanStack/router/pull/7075))
+
+## 1.168.7
+
+### Patch Changes
+
+- Avoid re-running hash scrolling after SSR hydration when later preload or invalidate cycles resolve without a location change. ([#7066](https://github.com/TanStack/router/pull/7066))
+
 ## 1.168.6
 
 ### Patch Changes

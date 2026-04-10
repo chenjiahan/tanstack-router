@@ -168,6 +168,8 @@ export const Match = Vue.defineComponent({
         if (routeNotFoundComponent.value) {
           content = Vue.h(CatchNotFound, {
             fallback: (error: any) => {
+              error.routeId ??= matchData.value?.routeId as any
+
               // If the current not found handler doesn't exist or it has a
               // route ID which doesn't match the current route, rethrow the error
               if (
@@ -190,7 +192,10 @@ export const Match = Vue.defineComponent({
             errorComponent: routeErrorComponent.value || ErrorComponent,
             onCatch: (error: Error) => {
               // Forward not found errors (we don't want to show the error component for these)
-              if (isNotFound(error)) throw error
+              if (isNotFound(error)) {
+                error.routeId ??= matchData.value?.routeId as any
+                throw error
+              }
               if (process.env.NODE_ENV !== 'production') {
                 console.warn(`Warning: Error in route match: ${actualMatchId}`)
               }
@@ -332,6 +337,7 @@ export const MatchInner = Vue.defineComponent({
           ssr: match.ssr,
           _forcePending: match._forcePending,
           _displayPending: match._displayPending,
+          _nonReactive: match._nonReactive,
         },
         remountKey,
       }
@@ -344,6 +350,22 @@ export const MatchInner = Vue.defineComponent({
 
     const match = Vue.computed(() => combinedState.value?.match)
     const remountKey = Vue.computed(() => combinedState.value?.remountKey)
+
+    const getMatchPromise = (
+      match: {
+        id: string
+        _nonReactive: {
+          displayPendingPromise?: Promise<void>
+          minPendingPromise?: Promise<void>
+          loadPromise?: Promise<void>
+        }
+      },
+      key: 'displayPendingPromise' | 'minPendingPromise' | 'loadPromise',
+    ) => {
+      return (
+        router.getMatch(match.id)?._nonReactive[key] ?? match._nonReactive[key]
+      )
+    }
 
     return (): VNode | null => {
       // If match doesn't exist, return null (component is being unmounted or not ready)
@@ -385,7 +407,7 @@ export const MatchInner = Vue.defineComponent({
 
           invariant()
         }
-        throw router.getMatch(match.value.id)?._nonReactive.loadPromise
+        throw getMatchPromise(match.value, 'loadPromise')
       }
 
       if (match.value.status === 'error') {

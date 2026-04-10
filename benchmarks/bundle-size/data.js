@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775848796604,
+  "lastUpdate": 1775849872574,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -9601,6 +9601,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/b29d64de0c400183114c12f82183f80e37d9ea5c"
         },
         "date": 1775848795300,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89621,
+            "unit": "bytes",
+            "extra": "raw=282381; brotli=77763"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92959,
+            "unit": "bytes",
+            "extra": "raw=293838; brotli=80785"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36457,
+            "unit": "bytes",
+            "extra": "raw=109935; brotli=32711"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41034,
+            "unit": "bytes",
+            "extra": "raw=123797; brotli=36823"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54747,
+            "unit": "bytes",
+            "extra": "raw=156837; brotli=49154"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59756,
+            "unit": "bytes",
+            "extra": "raw=172670; brotli=53503"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104467,
+            "unit": "bytes",
+            "extra": "raw=331781; brotli=90320"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107942,
+            "unit": "bytes",
+            "extra": "raw=342378; brotli=93268"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50897,
+            "unit": "bytes",
+            "extra": "raw=157295; brotli=44820"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56540,
+            "unit": "bytes",
+            "extra": "raw=173921; brotli=49751"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "540d22100d33415a1ddc9eb193f6aeb8184da77f",
+          "message": "fix: MatchRoute types (#7139)\n\nCo-authored-by: schiller-manuel <schiller-manuel@users.noreply.github.com>\nCo-authored-by: nx-cloud[bot] <71083854+nx-cloud[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-10T21:35:42+02:00",
+          "tree_id": "602478a895dfe85a7eb34bb119136d386bd7b69c",
+          "url": "https://github.com/TanStack/router/commit/540d22100d33415a1ddc9eb193f6aeb8184da77f"
+        },
+        "date": 1775849871684,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

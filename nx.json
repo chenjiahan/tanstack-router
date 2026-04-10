@@ -7,7 +7,7 @@
   "tui": {
     "enabled": false
   },
-  "bust": "fast-ci-2",
+  "bust": "fast-ci-3",
   "namedInputs": {
     "sharedGlobals": [
       "{workspaceRoot}/.nvmrc",

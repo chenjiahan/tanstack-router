@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775843647589,
+  "lastUpdate": 1775845639886,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -9494,6 +9494,90 @@ window.BENCHMARK_DATA = {
             "value": 56498,
             "unit": "bytes",
             "extra": "raw=173818; brotli=49717"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4b9ed6c5cb5437df8607c605728c8338dd2eb02c",
+          "message": "fix: don't leak internal props in Link (#7138)",
+          "timestamp": "2026-04-10T20:18:20+02:00",
+          "tree_id": "6f3900684084637383930183eab202b563993516",
+          "url": "https://github.com/TanStack/router/commit/4b9ed6c5cb5437df8607c605728c8338dd2eb02c"
+        },
+        "date": 1775845638113,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89600,
+            "unit": "bytes",
+            "extra": "raw=282415; brotli=77832"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92952,
+            "unit": "bytes",
+            "extra": "raw=293872; brotli=80836"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36429,
+            "unit": "bytes",
+            "extra": "raw=109864; brotli=32735"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 41003,
+            "unit": "bytes",
+            "extra": "raw=123726; brotli=36718"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54716,
+            "unit": "bytes",
+            "extra": "raw=156771; brotli=49169"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59720,
+            "unit": "bytes",
+            "extra": "raw=172604; brotli=53440"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104440,
+            "unit": "bytes",
+            "extra": "raw=331815; brotli=90336"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107922,
+            "unit": "bytes",
+            "extra": "raw=342412; brotli=93214"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50872,
+            "unit": "bytes",
+            "extra": "raw=157224; brotli=44791"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56510,
+            "unit": "bytes",
+            "extra": "raw=173850; brotli=49735"
           }
         ]
       }

@@ -118,10 +118,40 @@ function attachResponseHeaders<T>(
   return value
 }
 
+class MalformedRequestPathError extends Error {
+  constructor(pathname: string, options?: { cause?: unknown }) {
+    super(`Malformed request path: ${pathname}`, options)
+    this.name = 'MalformedRequestPathError'
+  }
+}
+
+function assertValidRequestPath(request: Request): void {
+  const pathname = new URL(request.url).pathname
+
+  try {
+    decodeURI(pathname)
+  } catch (cause) {
+    throw new MalformedRequestPathError(pathname, { cause })
+  }
+}
+
 export function requestHandler<TRegister = unknown>(
   handler: RequestHandler<TRegister>,
 ) {
   return (request: Request, requestOpts: any): Promise<Response> | Response => {
+    try {
+      assertValidRequestPath(request)
+    } catch (error) {
+      if (error instanceof MalformedRequestPathError) {
+        return new Response(null, {
+          status: 400,
+          statusText: 'Bad Request',
+        })
+      }
+
+      throw error
+    }
+
     const h3Event = new H3Event(request)
 
     const response = eventStorage.run({ h3Event }, () =>

@@ -444,8 +444,10 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   const suspendOrKeepPending = (
     key: 'displayPendingPromise' | 'minPendingPromise' | 'loadPromise',
   ) => {
+    const routerMatch = router.getMatch(match.id)
+
     const promise =
-      router.getMatch(match.id)?._nonReactive[key] ??
+      routerMatch?._nonReactive[key] ??
       match._nonReactive[key] ??
       router.latestLoadPromise
 
@@ -454,7 +456,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     }
 
     const retainedPendingPromise =
-      router.getMatch(match.id)?._nonReactive.retainedPendingPromise ??
+      routerMatch?._nonReactive.retainedPendingPromise ??
       match._nonReactive.retainedPendingPromise
 
     if (retainedPendingPromise) {

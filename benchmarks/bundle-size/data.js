@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775943298736,
+  "lastUpdate": 1775953920546,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -10525,6 +10525,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/0e2c9003c18ae07c09969189c028f277ea562a7a"
         },
         "date": 1775943297688,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89436,
+            "unit": "bytes",
+            "extra": "raw=281229; brotli=77707"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92789,
+            "unit": "bytes",
+            "extra": "raw=292568; brotli=80613"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36382,
+            "unit": "bytes",
+            "extra": "raw=109199; brotli=32727"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40948,
+            "unit": "bytes",
+            "extra": "raw=123013; brotli=36740"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54591,
+            "unit": "bytes",
+            "extra": "raw=155694; brotli=49057"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59602,
+            "unit": "bytes",
+            "extra": "raw=171485; brotli=53362"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104188,
+            "unit": "bytes",
+            "extra": "raw=330099; brotli=90072"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107714,
+            "unit": "bytes",
+            "extra": "raw=340678; brotli=93047"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50722,
+            "unit": "bytes",
+            "extra": "raw=156107; brotli=44717"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56364,
+            "unit": "bytes",
+            "extra": "raw=172699; brotli=49619"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "656a2a040e79df7721d776e3751c8d634666570b",
+          "message": "chore: add vite 8 to peer deps (#7160)\n\nCo-authored-by: schiller-manuel <6340397+schiller-manuel@users.noreply.github.com>\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>\nCo-authored-by: nx-cloud[bot] <71083854+nx-cloud[bot]@users.noreply.github.com>\nCo-authored-by: autofix-ci[bot] <114827586+autofix-ci[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-12T02:29:41+02:00",
+          "tree_id": "5194aa53ef83cd9c7a2f830a6202b753a005c537",
+          "url": "https://github.com/TanStack/router/commit/656a2a040e79df7721d776e3751c8d634666570b"
+        },
+        "date": 1775953918672,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

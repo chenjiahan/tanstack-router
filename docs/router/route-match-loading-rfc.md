@@ -5,7 +5,7 @@ title: Route Match Loading RFC
 
 # Route Match Loading And Rendering RFC
 
-Status: phase 1 complete, phase 2 ready to start
+Status: phase 1 core contract complete, phase 2 ready to start
 
 Owner: multi-session effort, React-first
 
@@ -261,59 +261,65 @@ This section is the start of phase 1. It should be treated as normative unless s
 
 ### Terminology
 
-- Match identity: the concrete `match.id` instance, including route id, concrete pathname, and loader-deps hash.
-- Route presence identity: the logical presence of a route in the tree, keyed by `routeId`.
-- Active match: a match currently committed to the rendered tree.
-- Pending match: a match being prepared for possible promotion to active.
-- Cached match: an inactive match retained for reuse.
+- Match instance: an implementation-level record representing one matched route occurrence.
+- Route presence identity: the logical continuity of a route in the visible tree.
+- Load resource identity: the key used to determine whether previously acquired route-loading artifacts may be reused for a route.
+  Today the implementation approximates this with `route.id + interpolatedPath + loaderDepsHash`, but phase 2 should model the semantic concept, not the current string construction.
+- Committed tree: the currently visible route tree.
+- Candidate tree: the next route tree being evaluated for possible commit.
+- Reusable artifacts: any previously acquired route-loading artifacts that a later generation may be allowed to reuse.
 - Load generation: a single causally ordered attempt to make a match render-ready.
 - Effective context: router context plus accumulated parent `context()` values plus accumulated `beforeLoad` returns up to the current match.
-- Render gate: the state that determines whether the adapter may render the route component, render pending UI, render not-found UI, render error UI, or suspend.
+- Render gate: a semantic visibility state emitted by router-core, such as blocked, pending, ready, error, or notFound.
+- Generation obsolescence: the fact that an older generation may no longer affect the visible tree.
 
 ### Normative Goals
 
 1. A render-visible match must never expose incomplete effective context for its own generation.
 2. The router must model match loading as explicit generations, so stale completions cannot overwrite newer state.
-3. A match must never exist in more than one pool at a time.
-4. A render-visible pending or redirected match must retain a valid suspension/render-gate contract for the entire period it is visible.
-5. `beforeLoad` execution is serial from root to leaf.
-6. Loader execution begins only after the serial `beforeLoad` prefix is established, and loaders may run in parallel after that.
-7. The failure that wins for a navigation/preload is the highest-priority failure closest to the root under the defined precedence rules.
-8. Cache promotion and reuse must be explicit. Reused data and rerun work must be determined by spec, not by incidental object reuse.
-9. Eviction and garbage collection must not invalidate currently rendered or still-needed render gates.
-10. Router-core should model routing facts; framework adapters should model framework-specific rendering mechanics.
+3. The committed tree must update atomically and coherently, never as an observably inconsistent mix of generations.
+4. If an implementation uses multiple pools or stores, their aliasing semantics must be explicit and must not affect correctness.
+5. A render-visible pending or redirected match must retain a valid render contract for the entire period it is visible.
+6. `beforeLoad` execution is serial from root to leaf.
+7. Loader execution begins only after the serial `beforeLoad` prefix is established, and loaders may run in parallel after that.
+8. The winning failure for a generation must be determined by semantic precedence and boundary ownership, not by completion timing accidents.
+9. Cache promotion and reuse must be explicit. Reused data and rerun work must be determined by spec, not by incidental object reuse.
+10. Eviction and garbage collection must not invalidate currently rendered or still-needed render gates.
+11. Router-core should model routing facts; framework adapters should model framework-specific rendering mechanics.
 
 ### Normative Invariants
 
 These invariants should later become FizzBee assertions.
 
-1. Tentative exclusive pool membership
-   A given `match.id` should ideally be in exactly one of `active`, `pending`, or `cached`, or in none of them.
-   This is a preferred simplifying invariant for the redesign, but it may be relaxed if it blocks a materially better solution.
-2. Generation monotonicity
+1. Generation monotonicity
    A completion from generation `N` must not mutate the visible state for generation `N + 1`.
-3. Context completeness before render
+2. Context completeness before render
    If a match may render its route component, then its effective context for that generation is complete.
+3. Commit atomicity/coherence
+   The committed tree must never expose a mix of route-loading facts that could not have come from one coherent generation.
 4. Pending continuity
    If a match is intentionally rendered as pending, the adapter must always have a valid render gate for it until the match leaves pending display.
 5. Redirect continuity
-   If a match is observed as redirected during a transition, the adapter must still be able to abandon the stale render safely.
+   If a match is observed as redirected during a transition, the stale generation must not later become render-ready again.
 6. Root not-found shell preservation
    Root not-found must preserve the root shell/layout contract.
 7. Ancestor visibility
    If a child fails in a way that still requires ancestor UI/head/data to render, the required ancestor work must be preserved.
 8. Explicit reuse rules
    Reusing a cached or active match must not implicitly reuse stale `beforeLoad` context or loader data unless the spec says it does.
+9. Implementation alias safety
+   If the implementation stores equivalent route information in multiple pools or stores, that duplication must not create ambiguous lookups or divergent visible semantics.
 
 ### Router-Core Versus Adapter Contract
 
 Router-core should guarantee:
 
-- pool membership
+- committed-tree and candidate-tree semantics
+- load resource reuse decisions
 - generation identity and completion rules
-- the final state of each match for a generation
+- the final semantic outcome of each route for a generation
 - when context is complete enough for each phase
-- whether a match is renderable, pending-renderable, error-renderable, or not-found-renderable
+- semantic render-gate facts and generation obsolescence
 
 Adapters should guarantee:
 
@@ -328,7 +334,14 @@ The following phase-1 decisions are now treated as settled enough to begin phase
 
 #### D1. Preload reuse rules
 
-When a preload later becomes active for the same `match.id`:
+This remains a compatibility policy, not a sacred first-principles law.
+
+The current working principle is:
+
+- `beforeLoad` is conservative preflight/context/authorization work
+- `loader` is reusable data acquisition work
+
+Unless phase 2 disproves that split, when a preload later becomes active for the same load resource identity:
 
 - `beforeLoad` reruns on navigation
 - a fresh successful loader result may be reused
@@ -339,15 +352,23 @@ See rules `P4`, `P9`, and `P10`.
 
 #### D2. Generation-scoped versus match-instance-scoped state
 
-The phase-2 model should treat the following as match-instance-scoped:
+The phase-2 model should separate three concepts that are blurred together in the current implementation:
 
-- `match.id`
+- route presence identity
+- load resource identity
+- implementation-level match instance
+
+The phase-2 model should treat the following as stable route/presence facts:
+
 - `routeId`
-- `pathname`
-- `params`
-- `search`
-- `loaderDeps`
-- static route metadata needed for boundary resolution and SSR inheritance
+- route boundary capabilities
+- SSR inheritance facts
+
+The phase-2 model should treat the following as reusable-resource identity inputs:
+
+- the route identity
+- the relevant path/input key used for reusable artifacts
+- loader-relevant dependency inputs
 
 The phase-2 model should treat the following as generation-scoped:
 
@@ -357,7 +378,7 @@ The phase-2 model should treat the following as generation-scoped:
 - loader result data
 - terminal error/redirect/notFound outcome
 - render gate
-- abort signal / generation cancellation state
+- generation obsolescence / cancellation state
 - freshness result for the current generation
 
 The implementation may store some of these together, but the semantics should remain separated.
@@ -368,11 +389,14 @@ For spec purposes, route `context()` is recomputed for every load generation aft
 
 An implementation may memoize or structurally share equivalent results, but the observable semantics must match recomputation-per-generation.
 
-This decision is intentionally spec-first because stale route-context reuse is a likely source of correctness bugs.
+This decision is intentionally spec-first because stale route-context reuse is a likely source of correctness bugs and the current implementation already has to compensate for this during hydration.
 
 #### D4. Failure precedence
 
-Failure precedence is defined by the table in the `Failure Precedence Table` section below.
+Failure precedence has two layers:
+
+- semantic principles, which are normative for the rewrite
+- a current-compatibility baseline, which phase 2 can test against and then challenge if a cleaner semantic formulation proves equivalent or better
 
 #### D5. Render-gate ownership split
 
@@ -383,13 +407,14 @@ Router-core owns semantic render-gate facts such as:
 - render ready
 - render notFound
 - render error
-- abandon stale generation
+
+Router-core also owns generation-obsolescence facts such as “this stale generation may no longer affect the committed tree.”
 
 Adapters own the framework mechanism used to realize those facts, such as:
 
 - thrown promises
 - suspense/resource wiring
-- `ClientOnly`
+- client-only DOM gating
 - framework-specific boundary placement
 
 #### D6. Acceptable adapter divergence
@@ -412,23 +437,31 @@ Required shared semantics:
 
 #### D7. Residual non-blocking note
 
-The tentative exclusive-pool-membership invariant remains preferred, but phase 2 may relax it if doing so leads to a cleaner and safer model.
+The tentative exclusive-pool-membership invariant is no longer treated as normative core semantics.
+
+If phase 2 finds that strict exclusivity improves the model, it can be reintroduced as an implementation simplifier. If not, the model must instead define explicit alias-safety semantics.
 
 ### Draft Rule Set: Preload, Cache, Reuse, And Eviction
 
 This is the third concrete semantic slice of phase 1.
 
-#### Rule P1. Match identity is route id plus concrete path plus loader-deps identity
+#### Rule P1. Current implementation approximates load resource identity with route id plus concrete path plus loader-deps identity
 
-Search params only affect match identity through `loaderDeps`.
+For current-implementation compatibility, reusable loader artifacts are keyed by route id plus concrete path plus loader-deps identity.
+
+For the rewrite, this should be treated as the current approximation of load resource identity, not as an untouchable semantic law.
+
+Search params only affect resource reuse through the derived loader-relevant inputs.
 
 References:
 
 - `packages/router-core/src/router.ts:1482-1510`
 
-#### Rule P2. Preload creates cache entries immediately
+#### Rule P2. Preload creates reusable artifacts before success
 
-`preloadRoute()` creates cache entries at preload start, not only after success.
+Semantically, preload may create reusable route-loading artifacts before success.
+
+Current implementation note: `preloadRoute()` materializes those artifacts as cached entries at preload start, not only after success.
 
 References:
 
@@ -436,9 +469,11 @@ References:
 - `packages/router-core/tests/load.test.ts:189-200`
 - `packages/router-core/tests/load.test.ts:434-445`
 
-#### Rule P3. Navigation promotes through pending first
+#### Rule P3. Navigation evaluates a candidate tree before visible commit
 
-Navigation does not promote cached entries directly to active. Matching first produces a pending tree, then readiness promotes pending to active.
+Semantically, navigation evaluates a candidate tree before updating the committed tree.
+
+Current implementation note: matching first produces a pending tree, then readiness promotes pending to active.
 
 References:
 
@@ -473,7 +508,7 @@ A stale successful match should reload only when at least one of the following i
 
 - explicit same-location reload
 - match cause is `enter`
-- the route reappears with a different `match.id`
+- the route reappears with a different load resource identity
 - the match is invalidated
 - `shouldReload` says to reload
 
@@ -521,9 +556,11 @@ References:
 
 - `packages/router-core/tests/load.test.ts:447-556`
 
-#### Rule P11. Cache eviction is lazy, not timer-driven
+#### Rule P11. Eviction timing is an implementation choice subject to safety constraints
 
-GC eligibility is time-based, but actual removal happens on later GC passes, not on a live timer.
+Semantically, eviction must not break visible or still-needed route-loading state.
+
+Current implementation note: GC eligibility is time-based, but actual removal happens on later GC passes, not on a live timer.
 
 References:
 
@@ -615,9 +652,11 @@ References:
 
 The target spec should not depend on these exact promise names, but it must preserve the continuity guarantee they currently try to provide.
 
-#### Rule R2. Redirected matches still need an abandonment gate
+#### Rule R2. Redirected stale generations must remain safely discardable
 
-If React observes a match as `redirected` during an in-flight transition, the stale render must still be able to suspend and get abandoned safely.
+If a stale generation has already become visible enough for an adapter to be working with it, a redirect must not leave that adapter with an invalid intermediate state.
+
+Different adapters may realize safe discard differently, but phase 2 should model the semantic guarantee rather than React's thrown-promise mechanism.
 
 References:
 
@@ -635,15 +674,31 @@ References:
 
 The target design should describe this in terms of render gates, not ad hoc React-specific flags in the core model.
 
-#### Rule R4. Render gates must outlive visible pool transitions
+#### Rule R4. Render gates must outlive visible implementation transitions
 
-Cache promotion, pending-to-active promotion, redirect finalization, and stale background completion must not destroy the active render gate while the adapter can still read it.
+Implementation transitions such as cache promotion, candidate-to-committed promotion, redirect finalization, and stale background completion must not destroy the active render gate while the adapter can still read it.
 
 Relevant implementation anchors:
 
 - `packages/router-core/src/load-matches.ts:115-167`
 - `packages/router-core/src/load-matches.ts:925-945`
 - `packages/router-core/src/router.ts:2476-2488`
+
+#### Rule R5. Pending timing is an observable contract, not an adapter mechanism
+
+The router's pending semantics include two observable timing commitments:
+
+- pending is not shown until the configured optimistic threshold elapses (`pendingMs`)
+- once pending becomes visible, it remains visible for at least the configured minimum duration (`pendingMinMs`)
+
+Adapters may realize this with different primitives, but phase 2 should model the timing semantics explicitly rather than infer them from promise shapes.
+
+References:
+
+- `docs/router/guide/data-loading.md:509-523`
+- `packages/react-router/src/Match.tsx:412-435`
+- `packages/solid-router/src/Match.tsx:322-367`
+- `packages/vue-router/src/Match.tsx:436-471`
 
 ### Draft Rule Set: Failure Precedence
 
@@ -669,7 +724,9 @@ Evidence and anchors:
 
 #### Rule F3. Redirect wins immediately for the current generation
 
-A redirect aborts the current generation and starts resolution of the redirect target.
+A redirect dominates the current generation and starts resolution of the redirect target.
+
+Phase 2 should model this as a semantic dominance rule, not as a claim about the exact timing of current implementation finalization.
 
 Reference:
 
@@ -688,9 +745,30 @@ Reference:
 
 The exact precedence order for mixed redirect/notFound/error outcomes across multiple matches is defined below for phase-2 modeling.
 
-### Failure Precedence Table
+### Semantic Failure Principles
 
-For a single load generation, the winning outcome is resolved in this order.
+These principles are more important than any current table or status encoding.
+
+1. Redirect dominance
+   A redirect dominates all non-redirect outcomes for the same generation.
+2. Deterministic winner selection
+   The winning outcome for a generation must be deterministic and must not depend on completion timing races.
+3. Boundary ownership
+   notFound and error outcomes are resolved relative to the boundary that will actually render them, not merely the throwing route.
+4. Root-shell preservation
+   A root-level notFound must preserve the root shell contract.
+5. Ancestor work preservation
+   Child failure may still require ancestor work so the winning boundary can render coherently.
+
+### Current Compatibility Precedence Baseline
+
+The table below captures the current compatibility baseline inferred from existing code and tests.
+
+This baseline is non-normative. Phase 2 should first model the semantic failure principles and only then add this baseline as an optional compatibility target.
+
+Phase 2 may replace it with a cleaner semantic formulation if the observable behavior remains correct or improves intentionally.
+
+For the current baseline, a single load generation is resolved in this order.
 
 | Rank | Outcome source        | Outcome type  | Notes                                                                                       |
 | ---- | --------------------- | ------------- | ------------------------------------------------------------------------------------------- |
@@ -717,14 +795,14 @@ References:
 
 ### Failure Precedence Narrative
 
-TanStack Router resolves failures in two stages: a serial preflight stage and a parallel loader stage.
+TanStack Router currently resolves failures in two stages: a serial preflight stage and a parallel loader stage.
 
 - A redirect thrown during the serial stage terminates the generation immediately.
 - A serial-stage `notFound` or regular error is provisional: it stops deeper serial work, but eligible ancestor loaders may still run.
 - Once loaders settle, loader outcomes are resolved in route-match order with precedence `redirect > error > notFound`.
 - If no loader outcome supersedes the provisional serial result, the router finalizes the serial `notFound` or regular error.
 - notFound rendering is based on the resolved boundary route, not merely the throwing route.
-- root notFound preserves the root shell by using `globalNotFound`.
+- current implementation preserves root notFound via `globalNotFound`, but the rewrite should treat root-shell preservation as the semantic requirement rather than copy the exact flag.
 
 ### Draft Rule Set: Hydration And No-SSR Rendering
 
@@ -748,9 +826,13 @@ References:
 - `packages/router-core/src/router.ts:154-155`
 - `packages/router-core/src/load-matches.ts:263-290`
 
-#### Rule H2. The first client-rendered match is the hydration boundary
+#### Rule H2. Hydration boundaries are defined by DOM ownership, not implementation index
 
-The first active match whose authoritative DOM is client-owned becomes the hydration boundary that may need forced pending or client-only gating.
+Hydration introduces a client-render boundary wherever authoritative DOM transitions from server-owned to client-owned.
+
+Current working simplification: the first active match with client-owned authoritative DOM is treated as the hydration boundary.
+
+Phase 2 should model the semantic boundary, not copy today's implementation heuristics mechanically.
 
 References:
 
@@ -766,7 +848,9 @@ References:
 
 #### Rule H4. SPA-mode hydration preserves pending without blocking the root unnecessarily
 
-If hydration is effectively falling back to SPA-mode, the first non-root client-rendered match may display pending while the router finishes loading, without forcing the whole root tree through an unnecessary initial suspense cycle.
+If hydration is effectively falling back to SPA-mode, the client may display pending below the root while the router finishes loading, without forcing the whole root tree through an unnecessary initial suspense cycle.
+
+Current implementation note: the existing code special-cases the first non-root match during SPA-mode hydration. Phase 2 should preserve only the user-observable behavior, not the index-based heuristic.
 
 References:
 
@@ -787,6 +871,7 @@ Required shared semantics:
 - hydration-safe fallback for client-rendered matches
 - pending remains visible where configured
 - SSR inheritance semantics stay intact
+- committed-tree coherence is preserved during hydration and post-hydration loading
 
 References:
 
@@ -810,32 +895,32 @@ The matrix above is summarized here as explicit rules by entry point.
 
 #### Initial page load
 
-- the router computes the full pending tree for the destination
+- the router computes the full candidate tree for the destination
 - all `beforeLoad` run serially from root to leaf until cut off by failure
 - loaders run for the surviving prefix according to the failure rules above
-- activation happens only through pending-to-active promotion
+- the committed tree updates only after a coherent candidate result exists
 
 #### Fully SSR-backed hydration
 
-- dehydrated matches become the active tree
+- dehydrated matches become the committed tree
 - route context and head/script data are reconstructed client-side
 - no additional client load runs if hydration is fully SSR-backed and not in SPA mode
 
 #### Hydration with client-rendered boundary
 
-- the first client-rendered match becomes the hydration boundary
+- a semantic client-render boundary exists wherever authoritative DOM shifts from server-owned to client-owned
 - the adapter may show a hydration-safe fallback for that boundary and below
 - forced/display-pending behavior is allowed here to preserve continuity
 
 #### Client navigation
 
-- navigation always computes a fresh pending tree
+- navigation always computes a fresh candidate tree
 - `beforeLoad` reruns on navigation even when loader results are still reusable
-- activation and exiting-cache behavior follow the cache rules above
+- commit and reusable-artifact behavior follow the reuse/eviction rules above
 
 #### Preload
 
-- preload may create cache entries before success
+- preload may create reusable artifacts before success
 - preload never commits active UI directly
 - in-flight preload loader work may be adopted by a later navigation for the same match
 
@@ -843,7 +928,7 @@ The matrix above is summarized here as explicit rules by entry point.
 
 - redirect terminates the current generation according to the precedence table
 - redirect starts target resolution as a fresh generation
-- stale redirected renders must still retain a valid abandonment gate until discarded
+- stale redirected renders must still remain safely discardable until the adapter releases them
 
 #### beforeLoad notFound
 
@@ -853,17 +938,17 @@ The matrix above is summarized here as explicit rules by entry point.
 
 #### Background stale reload
 
-- the current active match remains renderable while background reload continues
+- the current committed route state remains renderable while background reload continues
 - late completion from background reload must not clobber a newer generation
 
 #### Invalidation
 
-- invalidation applies to active, pending, and cached entries uniformly
-- invalidation marks matches stale and may reset terminal error/notFound matches to pending
+- invalidation applies uniformly to committed route state, candidate route state, and reusable artifacts selected by policy
+- invalidation marks the selected route-loading facts stale and may reset terminal error/notFound outcomes so they can rerun
 
 #### GC and eviction
 
-- eviction is lazy and only removes GC-eligible cached entries
+- eviction removes only reusable artifacts that are no longer needed by the committed tree or an in-flight candidate tree
 - eviction must not break any still-visible or still-needed render gate
 
 ### Phase 1 Coverage And Gaps
@@ -881,7 +966,7 @@ Important remaining gaps to close during implementation:
 - explicit tests for mixed loader error vs serial beforeLoad notFound precedence
 - explicit tests for generation safety during background reload plus fast subsequent navigation
 - explicit adapter-level tests for hydration boundary semantics across React, Solid, and Vue
-- explicit tests for promise/render-gate continuity when pool membership changes
+- explicit tests for promise/render-gate continuity across implementation transitions such as reuse, commit, and eviction
 
 ## Scenario Matrix
 
@@ -891,7 +976,7 @@ This is the first pass of the phase-1 inventory. It is intentionally broad so la
 | --------------------------------------------- | ------------------------------------------------------- | ------------------------------------ | ----------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
 | Initial page load                             | all next matches created or reused                      | serial root to leaf                  | parallel after serial prefix              | may reuse fresh cached data                                | may show pending depending on route/router defaults            | redirect/notFound/error may prevent full tree mount         |
 | SSR hydration, fully SSR-backed               | matches hydrated from server payload                    | may be skipped on first client pass  | may be skipped on first client pass       | hydrated matches become active immediately                 | avoid hydration mismatch; no extra pending UI unless needed    | hydration-time errors/notFound still need defined behavior  |
-| SSR hydration with `ssr: false` / `data-only` | first non-SSR match becomes special                     | may need rerun on client             | may need rerun on client                  | hydrated prefix may coexist with client-only suffix        | pending continuity must survive hydration                      | redirect/notFound/error cannot corrupt hydrated prefix      |
+| SSR hydration with `ssr: false` / `data-only` | first client-render boundary becomes special            | may need rerun on client             | may need rerun on client                  | hydrated prefix may coexist with client-only suffix        | pending continuity must survive hydration                      | redirect/notFound/error cannot corrupt hydrated prefix      |
 | Client navigation                             | pending tree derived from next location                 | serial root to leaf                  | parallel                                  | active matches may be preserved; exiting matches may cache | pending may appear late or immediately                         | winning failure must be deterministic                       |
 | Preload                                       | target tree may be loaded into cache only               | serial root to leaf                  | parallel                                  | later navigation may promote or rerun                      | no active render, but render-gate facts may still matter later | preload redirect/notFound/error must not poison active tree |
 | Redirect during navigation                    | next location may supersede older generation            | may come from `beforeLoad`           | may come from loader                      | stale work must not win later                              | stale render must abandon safely                               | redirect must preserve target navigation semantics          |
@@ -900,9 +985,78 @@ This is the first pass of the phase-1 inventory. It is intentionally broad so la
 | Invalidation                                  | existing active/cached matches are marked stale/pending | reruns according to spec             | reruns according to spec                  | reuse rules must be explicit                               | active UI may remain while reload happens                      | previous error/notFound state must reset correctly          |
 | GC/eviction                                   | inactive cached matches may drop                        | n/a                                  | n/a                                       | must not evict still-needed matches                        | no visible render gate may break                               | eviction cannot affect active/pending generations           |
 
+## Phase 1 Evaluation Findings
+
+An adversarial subagent review of this RFC produced the following conclusions, and this document has already been updated to reflect them.
+
+What survived review as strong first-principles material:
+
+- effective context must be complete before render
+- generations must isolate stale completions from newer visible state
+- serial preflight plus parallel data loading remains a sound core model
+- boundary ownership and root-shell preservation are the right way to reason about notFound and error rendering
+- router-core and adapter responsibilities must remain separate
+
+What was corrected or reframed after review:
+
+- `match.id` is no longer treated as the core semantic identity; the RFC now separates route presence identity, load resource identity, and implementation-level match instances
+- active/pending/cached pools are no longer treated as normative core semantics; they are implementation choices subject to alias-safety requirements
+- the failure-precedence table is now treated as a current compatibility baseline beneath a smaller set of semantic failure principles
+- root notFound semantics are defined in terms of root-shell preservation, not `globalNotFound` as a required representation
+- hydration is now defined in terms of semantic client-render boundaries, not just the current index-based heuristics
+- pending timing is now called out as an observable contract independent of adapter mechanism
+
+What remains intentionally provisional going into phase 2:
+
+- whether the current `beforeLoad` versus `loader` reuse asymmetry is a fundamental product rule or a compatibility policy
+- whether strict cross-pool exclusivity is worth preserving as an implementation simplifier
+- whether the current compatibility precedence baseline should survive unchanged once modeled semantically
+
+## Phase 2 Progress
+
+Phase 2 has started.
+
+Artifacts added:
+
+- executable model: `docs/router/route-match-loading.fizz`
+- tiny exhaustive-check config: `docs/router/route-match-loading-tiny.cfg`
+- two-generation exploratory config: `docs/router/route-match-loading-small.cfg`
+
+Current modeled semantics:
+
+- committed tree vs candidate generation separation
+- route presence identity vs reusable leaf-resource identity
+- serial `beforeLoad` progression with parent-context gating
+- parallel loader progression after serial preflight
+- redirect dominance during finalization
+- notFound boundary ownership and root-shell preservation
+- reusable artifact success reuse, in-flight adoption, and failure non-reuse
+- stale-generation protection for committed-state updates
+- commit atomicity as a model assertion
+
+Not yet modeled in the first executable spec:
+
+- hydration boundary semantics
+- adapter-specific pending display timing beyond the abstract contract
+- a richer cross-generation model with exhaustive overlap checking for multiple live generations
+- more precise error-boundary ownership beyond the current simplified source-owner rule
+
+Current verification status:
+
+- `fizz --preinit-hook-file docs/router/route-match-loading-tiny.cfg docs/router/route-match-loading.fizz`
+  Passed with `Valid Nodes: 12954` and `Unique states: 1007`.
+- `fizz --preinit-hook-file docs/router/route-match-loading-small.cfg docs/router/route-match-loading.fizz`
+  Remains useful for exploration but currently exceeds the 2-minute local command budget; it is the next target for state-space reduction or scenario-focused guided traces.
+
+Initial model-driven corrections already made while starting phase 2:
+
+- root-shell notFound rendering needed explicit context completion in the model to satisfy the context-ready invariant
+- fresh-artifact reuse needed a generation-local assertion rather than one tied to the artifact's later global state
+- the phase-2 model structure worked better when helper logic was inlined instead of relying on top-level function calls in FizzBee actions
+
 ## Phase 2 Bootstrap
 
-Phase 1 is complete enough to start modeling.
+Phase 1's core semantic contract is complete enough to start modeling.
 
 The goal of phase 2 is not to encode React, Solid, or Vue internals directly. The goal is to model router-core semantics plus an abstract render-gate contract that all adapters must satisfy.
 
@@ -913,7 +1067,7 @@ Recommended first model file: `docs/router/route-match-loading.fizz`
 Start with a deliberately small model.
 
 - at most 3 matched indices: root, parent, leaf
-- at most 1 active generation and 1 next generation at a time
+- start with 1 committed-tree generation and 1 candidate-tree generation, then expand quickly to allow at least one stale older generation to overlap a newer candidate generation
 - support these entry points first: initial load, navigation, preload, redirect, beforeLoad notFound, background stale reload, hydration with one client-rendered boundary
 - ignore code-splitting details at first except as a boolean “chunk needed before render-ready” fact
 - model userland suspense only as an adapter-side opaque condition, not as part of router-core state
@@ -922,39 +1076,47 @@ Start with a deliberately small model.
 
 Use these terms in the first FizzBee model.
 
-- match instance
+- committed tree
+- candidate tree
+- route presence identity
+- load resource identity
+- reusable artifacts
 - load generation
-- active tree
-- pending tree
-- cached entries
 - effective context
 - freshness
 - boundary owner
 - hydration boundary
 - render gate
 - terminal outcome
+- generation obsolescence
 
 ### Recommended abstract state
 
 The first model should represent at least the following facts.
 
-- `matches_by_id`
-  Match instance facts: `routeId`, `pathnameShape`, `loaderDepsKey`, boundary capabilities, SSR mode.
-- `pool_by_match_id`
-  `active`, `pending`, `cached`, or `none`.
-- `generation_by_match_id`
-  Current generation number or token for that match instance.
-- `status_by_match_id`
-  `idle`, `beforeLoad`, `loading`, `ready`, `error`, `redirected`, `notFound`.
-- `context_state_by_match_id`
+- `committed_tree`
+  Ordered route presence chain currently visible to the user.
+- `candidate_tree`
+  Ordered route presence chain currently being evaluated for possible commit.
+- `route_facts_by_presence_id`
+  Stable route facts such as `routeId`, boundary capabilities, and SSR inheritance facts.
+- `resource_key_by_presence_id`
+  The load resource identity currently associated with each route presence.
+- `reusable_artifacts_by_resource_id`
+  Reusable route-loading artifacts and their freshness state.
+- `generations`
+  First-class generation records keyed by generation token, each carrying entry point, affected route presences/resources, provisional failure, final outcome, and obsolescence state.
+- `preflight_state_by_generation_and_presence`
+  `not_started`, `in_flight`, `success`, `redirect`, `notFound`, `error`.
+- `data_state_by_generation_and_resource`
+  `not_started`, `in_flight`, `success`, `redirect`, `notFound`, `error`.
+- `context_state_by_generation_and_presence`
   `unknown`, `parent_ready`, `ready`.
-- `loader_state_by_match_id`
-  `not_started`, `in_flight`, `success`, `error`, `redirect`, `notFound`.
-- `render_gate_by_match_id`
-  `blocked`, `pending`, `ready`, `error`, `notFound`, `abandon`.
-- `freshness_by_match_id`
-  `fresh`, `stale`, `invalid`.
-- `hydration_mode_by_match_id`
+- `render_gate_by_generation_and_presence`
+  `blocked`, `pending`, `ready`, `error`, `notFound`.
+- `obsolescence_by_generation`
+  Whether a generation is still allowed to affect the committed tree.
+- `hydration_mode_by_presence_id`
   `server_dom`, `data_only`, `client_only`.
 - generation-level facts:
   - current entry point
@@ -981,19 +1143,20 @@ The first model should include actions equivalent to:
 12. `ResolveLoaderRedirect`
 13. `ResolveLoaderNotFound`
 14. `ResolveLoaderError`
-15. `FinalizeWinningOutcome`
-16. `PromotePendingTree`
+15. `DetermineBoundaryOwner`
+16. `FinalizeWinningOutcome`
 17. `StartBackgroundReload`
 18. `CompleteBackgroundReload`
-19. `InvalidateMatch`
-20. `EvictCachedMatch`
+19. `CommitCandidateTree`
+20. `InvalidateResource`
+21. `EvictReusableArtifacts`
 
 Hydration-specific actions can be added immediately after the first model passes the core assertions:
 
-- `HydrateMatchFromServer`
+- `HydrateServerFacts`
 - `MarkHydrationBoundary`
-- `EnterDisplayPending`
-- `ExitDisplayPending`
+- `EnterPendingFallback`
+- `ExitPendingFallback`
 
 ### Recommended first assertions
 
@@ -1003,18 +1166,20 @@ The first FizzBee model should prove these assertions.
    A completion from an older generation never changes the winning visible outcome of a newer generation.
 2. Context completeness
    A match with render gate `ready` always has effective context `ready` for that generation.
-3. Redirect abandonment safety
-   A redirected stale generation never becomes render gate `ready` again.
+3. Redirect discard safety
+   A redirected stale generation never becomes render gate `ready` again and never corrupts the committed tree.
 4. Pending continuity
    A match with render gate `pending` never loses its ability to remain pending until it transitions to another valid gate.
 5. Failure precedence
-   For any generation, the final winning outcome matches the precedence table in this RFC.
+   For any generation, the final winning outcome satisfies the semantic failure principles in this RFC and, when running a compatibility-focused model, the current compatibility baseline.
 6. Boundary correctness
    A finalized notFound always resolves to the correct rendered boundary owner.
 7. Root shell preservation
    Root notFound never requires replacing the root shell with a non-root-style notFound state.
 8. Reuse correctness
    Reused preload/cache data is only observed in cases permitted by rules `P4`, `P9`, and `P10`.
+9. Commit atomicity
+   Any visible commit corresponds to one coherent candidate-tree resolution.
 
 ### Recommended first trace checklist
 
@@ -1045,7 +1210,7 @@ Once the first model passes, phase 3 should begin by implementing explicit gener
 
 ## Phase 1 Exit Status
 
-Phase 1 is considered complete for now because this RFC now contains:
+Phase 1 is considered complete at the core semantic level because this RFC now contains:
 
 - a shared vocabulary
 - explicit normative goals and invariants
@@ -1057,7 +1222,7 @@ Phase 1 is considered complete for now because this RFC now contains:
 - scenario rules by entry point
 - a phase-2 modeling bootstrap with state, actions, assertions, and trace coverage
 
-Any remaining uncertainty is narrow enough to be resolved inside phase 2 while modeling, rather than blocking phase 2 from starting.
+Several compatibility-oriented details remain intentionally provisional, but they are now narrow enough to be resolved inside phase 2 while modeling, rather than blocking phase 2 from starting.
 
 ## Notes For Later Agents
 

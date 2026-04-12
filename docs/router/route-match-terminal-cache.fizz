@@ -1,0 +1,151 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 10
+  max_concurrent_actions: 1
+---
+
+# Phase 2 terminal-cache-focused model.
+#
+# This spec captures the correction that cached terminal outcomes are cacheable
+# under the same rules as non-terminal matches. A fresh cached redirect,
+# notFound, or error may be reused as that same terminal outcome. Stale or
+# invalid cached terminal outcomes go through the normal reload path.
+
+ArtifactState = enum('REDIRECT', 'NOT_FOUND', 'ERROR')
+Freshness = enum('FRESH', 'STALE', 'INVALID')
+LoadSource = enum('NONE', 'REUSE_TERMINAL', 'START_RELOAD')
+Outcome = enum('NONE', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+CommittedOutcome = enum('BASE', 'NEWER_SUCCESS', 'NEWER_NOT_FOUND', 'NEWER_ERROR')
+
+action Init:
+    artifact_state = ArtifactState.ERROR
+    artifact_freshness = Freshness.FRESH
+
+    navigation_started = False
+    beforeload_success = False
+    load_started = False
+    load_source = LoadSource.NONE
+    final_outcome = Outcome.NONE
+    committed_outcome = CommittedOutcome.BASE
+
+atomic action SetArtifactRedirect:
+    require navigation_started == False
+    artifact_state = ArtifactState.REDIRECT
+
+atomic action SetArtifactNotFound:
+    require navigation_started == False
+    artifact_state = ArtifactState.NOT_FOUND
+
+atomic action SetArtifactError:
+    require navigation_started == False
+    artifact_state = ArtifactState.ERROR
+
+atomic action SetFresh:
+    require navigation_started == False
+    artifact_freshness = Freshness.FRESH
+
+atomic action SetStale:
+    require navigation_started == False
+    artifact_freshness = Freshness.STALE
+
+atomic action SetInvalid:
+    require navigation_started == False
+    artifact_freshness = Freshness.INVALID
+
+atomic action StartNavigation:
+    require navigation_started == False
+    navigation_started = True
+
+atomic action ResolveBeforeLoadSuccess:
+    require navigation_started
+    require beforeload_success == False
+    beforeload_success = True
+
+atomic action ReuseFreshTerminal:
+    require beforeload_success
+    require load_source == LoadSource.NONE
+    require artifact_freshness == Freshness.FRESH
+
+    load_source = LoadSource.REUSE_TERMINAL
+    if artifact_state == ArtifactState.REDIRECT:
+        final_outcome = Outcome.REDIRECT
+    elif artifact_state == ArtifactState.NOT_FOUND:
+        final_outcome = Outcome.NOT_FOUND
+    else:
+        final_outcome = Outcome.ERROR
+
+atomic action StartReload:
+    require beforeload_success
+    require load_source == LoadSource.NONE
+    require artifact_freshness in [Freshness.STALE, Freshness.INVALID]
+
+    load_source = LoadSource.START_RELOAD
+    load_started = True
+
+atomic action ResolveReloadSuccess:
+    require load_started
+    require final_outcome == Outcome.NONE
+    final_outcome = Outcome.SUCCESS
+
+atomic action ResolveReloadRedirect:
+    require load_started
+    require final_outcome == Outcome.NONE
+    final_outcome = Outcome.REDIRECT
+
+atomic action ResolveReloadNotFound:
+    require load_started
+    require final_outcome == Outcome.NONE
+    final_outcome = Outcome.NOT_FOUND
+
+atomic action ResolveReloadError:
+    require load_started
+    require final_outcome == Outcome.NONE
+    final_outcome = Outcome.ERROR
+
+atomic action CommitVisibleTerminal:
+    require final_outcome in [Outcome.SUCCESS, Outcome.NOT_FOUND, Outcome.ERROR]
+    if final_outcome == Outcome.SUCCESS:
+        committed_outcome = CommittedOutcome.NEWER_SUCCESS
+    elif final_outcome == Outcome.NOT_FOUND:
+        committed_outcome = CommittedOutcome.NEWER_NOT_FOUND
+    else:
+        committed_outcome = CommittedOutcome.NEWER_ERROR
+
+always assertion TerminalReuseRequiresFreshArtifact:
+    if load_source != LoadSource.REUSE_TERMINAL:
+        return True
+    return artifact_freshness == Freshness.FRESH
+
+always assertion TerminalReusePreservesTerminalKind:
+    if load_source != LoadSource.REUSE_TERMINAL:
+        return True
+    if artifact_state == ArtifactState.REDIRECT:
+        return final_outcome == Outcome.REDIRECT
+    if artifact_state == ArtifactState.NOT_FOUND:
+        return final_outcome == Outcome.NOT_FOUND
+    return final_outcome == Outcome.ERROR
+
+always assertion FreshTerminalReuseDoesNotStartReload:
+    if load_source != LoadSource.REUSE_TERMINAL:
+        return True
+    return load_started == False
+
+always assertion StaleOrInvalidTerminalStartsReload:
+    if load_source != LoadSource.START_RELOAD:
+        return True
+    return artifact_freshness in [Freshness.STALE, Freshness.INVALID]
+
+always assertion RedirectReuseDoesNotCommitVisibleTree:
+    if final_outcome != Outcome.REDIRECT:
+        return True
+    return committed_outcome == CommittedOutcome.BASE
+
+always assertion ErrorOrNotFoundReuseMayCommitAsSameTerminalKind:
+    if load_source != LoadSource.REUSE_TERMINAL:
+        return True
+    if final_outcome == Outcome.NOT_FOUND:
+        return committed_outcome in [CommittedOutcome.BASE, CommittedOutcome.NEWER_NOT_FOUND]
+    if final_outcome == Outcome.ERROR:
+        return committed_outcome in [CommittedOutcome.BASE, CommittedOutcome.NEWER_ERROR]
+    return True

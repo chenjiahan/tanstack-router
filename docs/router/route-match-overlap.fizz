@@ -10,14 +10,14 @@ options:
 # This spec isolates one high-value overlapping-generation slice:
 # - a committed base route already exists
 # - a preload may start an in-flight artifact load
-# - a newer navigation may adopt that in-flight artifact or reuse a fresh one
+# - a newer navigation may adopt that in-flight artifact or reuse a fresh success artifact
 # - obsolete generations must not commit visible state
 
 Generation = enum('OLDER', 'NEWER')
 Entry = enum('NONE', 'PRELOAD', 'NAVIGATION')
 PreflightState = enum('NOT_STARTED', 'SUCCESS')
 DataState = enum('NOT_STARTED', 'IN_FLIGHT', 'SUCCESS', 'FAILURE')
-ArtifactState = enum('SUCCESS', 'IN_FLIGHT', 'NON_REUSABLE_FAILURE')
+ArtifactState = enum('SUCCESS', 'IN_FLIGHT', 'TERMINAL_FAILURE')
 Freshness = enum('FRESH', 'STALE', 'INVALID', 'NONE')
 LoadSource = enum('NONE', 'FRESH_REUSE', 'ADOPT_INFLIGHT', 'START_NEW')
 Outcome = enum('NONE', 'SUCCESS', 'FAILURE')
@@ -77,6 +77,7 @@ atomic action LaunchOlderLoad:
 
 atomic action StartNewerNavigation:
     require generation_entry[Generation.NEWER] == Entry.NONE
+    require artifact_state in [ArtifactState.SUCCESS, ArtifactState.IN_FLIGHT]
     generation_entry[Generation.NEWER] = Entry.NAVIGATION
 
     if generation_entry[Generation.OLDER] != Entry.NONE:
@@ -118,7 +119,7 @@ atomic action CompleteArtifactSuccess:
 
 atomic action CompleteArtifactFailure:
     require artifact_state == ArtifactState.IN_FLIGHT
-    artifact_state = ArtifactState.NON_REUSABLE_FAILURE
+    artifact_state = ArtifactState.TERMINAL_FAILURE
     artifact_freshness = Freshness.NONE
 
     for g in GENERATIONS:
@@ -162,7 +163,7 @@ always assertion AdoptedInflightNeverCommitsBeforeArtifactResolves:
     return True
 
 always assertion FailureAfterFreshReuseDoesNotPoisonCommittedSuccess:
-    if artifact_state != ArtifactState.NON_REUSABLE_FAILURE:
+    if artifact_state != ArtifactState.TERMINAL_FAILURE:
         return True
     if load_source[Generation.NEWER] != LoadSource.FRESH_REUSE:
         return True

@@ -47,6 +47,7 @@ atomic func initialize_generation(g, entry, leaf_resource):
     generation_root_shell_preserved[g] = False
     generation_loaders_launched[g] = False
     generation_used_fresh_artifact[g] = False
+    generation_reused_artifact_state[g] = None
     generation_adopted_inflight[g] = False
 
     for p in PRESENCES:
@@ -74,6 +75,7 @@ action Init:
     generation_root_shell_preserved = {}
     generation_loaders_launched = {}
     generation_used_fresh_artifact = {}
+    generation_reused_artifact_state = {}
     generation_adopted_inflight = {}
 
     preflight_state = {}
@@ -101,6 +103,7 @@ action Init:
         generation_root_shell_preserved[g] = False
         generation_loaders_launched[g] = False
         generation_used_fresh_artifact[g] = False
+        generation_reused_artifact_state[g] = None
         generation_adopted_inflight[g] = False
 
         for p in PRESENCES:
@@ -137,13 +140,13 @@ atomic action StartNavigation:
 atomic action MarkCommittedArtifactStale:
     require committed_generation != 0
     resource = generation_leaf_resource[committed_generation]
-    require artifact_state[resource] == ArtifactState.SUCCESS
+    require artifact_state[resource] in [ArtifactState.SUCCESS, ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR]
     artifact_freshness[resource] = Freshness.STALE
 
 atomic action InvalidateCommittedResource:
     require committed_generation != 0
     resource = generation_leaf_resource[committed_generation]
-    require artifact_state[resource] == ArtifactState.SUCCESS
+    require artifact_state[resource] in [ArtifactState.SUCCESS, ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR]
     artifact_freshness[resource] = Freshness.INVALID
 
 atomic action StartBackgroundReload:
@@ -234,9 +237,17 @@ atomic action LaunchEligibleLoaders:
         if p_depth <= limit:
             if p == Presence.LEAF:
                 resource = generation_leaf_resource[gen]
-                if generation_entry[gen] == Entry.NAVIGATION and artifact_state[resource] == ArtifactState.SUCCESS and artifact_freshness[resource] == Freshness.FRESH:
-                    data_state[(gen, p)] = DataState.SUCCESS
+                if generation_entry[gen] == Entry.NAVIGATION and artifact_state[resource] in [ArtifactState.SUCCESS, ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR] and artifact_freshness[resource] == Freshness.FRESH:
+                    if artifact_state[resource] == ArtifactState.SUCCESS:
+                        data_state[(gen, p)] = DataState.SUCCESS
+                    elif artifact_state[resource] == ArtifactState.REDIRECT:
+                        data_state[(gen, p)] = DataState.REDIRECT
+                    elif artifact_state[resource] == ArtifactState.NOT_FOUND:
+                        data_state[(gen, p)] = DataState.NOT_FOUND
+                    else:
+                        data_state[(gen, p)] = DataState.ERROR
                     generation_used_fresh_artifact[gen] = True
+                    generation_reused_artifact_state[gen] = artifact_state[resource]
                 else:
                     data_state[(gen, p)] = DataState.IN_FLIGHT
                     if artifact_state[resource] == ArtifactState.IN_FLIGHT:
@@ -489,22 +500,31 @@ always assertion AncestorPreservedOnLeafBeforeLoadNotFound:
                 return False
     return True
 
-always assertion FreshArtifactReuseProducesLeafSuccess:
+always assertion FreshArtifactReusePreservesLeafOutcome:
     for g in GEN_IDS:
         if generation_used_fresh_artifact[g]:
             if generation_entry[g] != Entry.NAVIGATION:
                 return False
             if generation_leaf_resource[g] == None:
                 return False
-            if data_state[(g, Presence.LEAF)] != DataState.SUCCESS:
+            reused = generation_reused_artifact_state[g]
+            if reused == None:
+                return False
+            if reused == ArtifactState.SUCCESS and data_state[(g, Presence.LEAF)] != DataState.SUCCESS:
+                return False
+            if reused == ArtifactState.REDIRECT and data_state[(g, Presence.LEAF)] != DataState.REDIRECT:
+                return False
+            if reused == ArtifactState.NOT_FOUND and data_state[(g, Presence.LEAF)] != DataState.NOT_FOUND:
+                return False
+            if reused == ArtifactState.ERROR and data_state[(g, Presence.LEAF)] != DataState.ERROR:
                 return False
     return True
 
-always assertion NoFailureArtifactReuseAsSuccess:
-    for resource in RESOURCES:
-        if artifact_state[resource] in [ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR]:
-            for g in GEN_IDS:
-                if generation_leaf_resource[g] == resource and generation_used_fresh_artifact[g]:
+always assertion TerminalOutcomeReuseDoesNotBecomeSuccess:
+    for g in GEN_IDS:
+        if generation_used_fresh_artifact[g]:
+            if generation_reused_artifact_state[g] in [ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR]:
+                if data_state[(g, Presence.LEAF)] == DataState.SUCCESS:
                     return False
     return True
 

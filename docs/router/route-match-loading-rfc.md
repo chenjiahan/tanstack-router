@@ -346,6 +346,7 @@ Unless phase 2 disproves that split, when a preload later becomes active for the
 - `beforeLoad` reruns on navigation
 - a fresh successful loader result may be reused
 - an in-flight preload loader may be adopted by navigation
+- a resolved preload redirect/notFound/error is cacheable and may be reused as the same terminal outcome when reuse policy allows
 - a resolved preload redirect/notFound/error is not reusable as success data
 
 See rules `P4`, `P9`, and `P10`.
@@ -504,7 +505,7 @@ References:
 
 #### Rule P6. Staleness alone does not always force reload
 
-A stale successful match should reload only when at least one of the following is true:
+A stale cached match or cached terminal outcome should reload only when at least one of the following is true:
 
 - explicit same-location reload
 - match cause is `enter`
@@ -548,9 +549,13 @@ References:
 - `packages/router-core/src/load-matches.ts:892-920`
 - `packages/router-core/tests/load.test.ts:434-571`
 
-#### Rule P10. Resolved preload failures are not reusable success data
+#### Rule P10. Resolved preload terminal outcomes are cacheable and reusable as terminal outcomes
 
-A completed preload whose terminal result is redirect, notFound, or error is not reusable as success data for later navigation.
+A completed preload whose terminal result is redirect, notFound, or error:
+
+- is cacheable under the same cache/eviction rules as a successful match
+- may be reused later as the same terminal outcome when freshness and invalidation policy allow
+- is not reusable as success data for later navigation
 
 References:
 
@@ -567,10 +572,11 @@ References:
 - `packages/router-core/src/router.ts:2476-2488`
 - `packages/router-core/src/router.ts:2764-2788`
 
-#### Rule P12. Error-like terminal states do not remain reusable cache entries
+#### Rule P12. Terminal outcome matches remain cacheable
 
-- exiting active matches in `error`, `notFound`, or `redirected` do not enter reusable cache on commit
-- cached matches that become `redirected` are removed from cache
+- exiting active matches in `error`, `notFound`, or `redirected` remain eligible for cache under the same rules as other matches
+- cached terminal outcomes remain eligible for reuse or rerun under the same freshness and invalidation policy as other cached matches
+- terminal outcome reuse preserves the terminal outcome kind; it does not reinterpret a cached terminal outcome as success data
 
 References:
 
@@ -579,7 +585,7 @@ References:
 
 #### Rule P13. Invalidation applies uniformly across active, pending, and cached matches
 
-Invalidation marks selected matches stale everywhere, and `error`/`notFound` matches reset to `pending` so they rerun.
+Invalidation marks selected matches stale everywhere. Terminal outcomes follow the same invalidation and rerun policy as non-terminal matches.
 
 References:
 
@@ -1028,9 +1034,11 @@ Artifacts added:
 - background-reload-focused model: `docs/router/route-match-background.fizz`
 - pending-timing-focused model: `docs/router/route-match-pending.fizz`
 - failure-precedence-focused model: `docs/router/route-match-failures.fizz`
+- terminal-cache-focused model: `docs/router/route-match-terminal-cache.fizz`
 - overlap scenario traces: `docs/router/route-match-overlap-fresh.trace`, `docs/router/route-match-overlap-adopt.trace`
 - background scenario traces: `docs/router/route-match-background-late-success.trace`, `docs/router/route-match-background-failure.trace`
 - pending scenario traces: `docs/router/route-match-pending-fast.trace`, `docs/router/route-match-pending-slow.trace`
+- terminal-cache scenario traces: `docs/router/route-match-terminal-cache-redirect.trace`, `docs/router/route-match-terminal-cache-notfound.trace`, `docs/router/route-match-terminal-cache-error.trace`, `docs/router/route-match-terminal-cache-stale-reload.trace`
 - failure scenario traces: `docs/router/route-match-failures-root-notfound.trace`, `docs/router/route-match-failures-leaf-notfound.trace`, `docs/router/route-match-failures-notfound-redirect.trace`, `docs/router/route-match-failures-error-vs-loader-notfound.trace`, `docs/router/route-match-failures-leaf-loader-error.trace`
 
 Phase-1 semantic coverage now maps to the suite like this:
@@ -1041,6 +1049,7 @@ Phase-1 semantic coverage now maps to the suite like this:
 - background stale reload and late-completion non-clobbering: `docs/router/route-match-background.fizz`
 - pending timing contract (`pendingMs` / `pendingMinMs`) at the semantic level: `docs/router/route-match-pending.fizz`
 - failure precedence, ancestor preservation, redirect dominance, and error/notFound boundary ownership: `docs/router/route-match-failures.fizz`
+- cacheability and reuse of terminal redirect/notFound/error outcomes: `docs/router/route-match-terminal-cache.fizz`
 
 Items intentionally left out of the phase-2 suite because they are implementation refinements rather than blockers for phase 3:
 
@@ -1051,7 +1060,7 @@ Items intentionally left out of the phase-2 suite because they are implementatio
 Current verification status:
 
 - `fizz --preinit-hook-file docs/router/route-match-loading-tiny.cfg docs/router/route-match-loading.fizz`
-  Passed with `Valid Nodes: 12954` and `Unique states: 1007`.
+  Passed with `Valid Nodes: 18858` and `Unique states: 1475`.
 - `fizz --preinit-hook-file docs/router/route-match-loading-small.cfg docs/router/route-match-loading.fizz`
   Remains useful for exploration but currently exceeds the 2-minute local command budget; it is now treated as an exploratory umbrella model rather than the only overlap-checking path.
 - `fizz docs/router/route-match-hydration.fizz`
@@ -1064,6 +1073,8 @@ Current verification status:
   Passed with `Valid Nodes: 7` and `Unique states: 7`.
 - `fizz docs/router/route-match-failures.fizz`
   Passed with `Valid Nodes: 1740` and `Unique states: 348`.
+- `fizz docs/router/route-match-terminal-cache.fizz`
+  Passed with `Valid Nodes: 80` and `Unique states: 80`.
 - `fizz --trace-file docs/router/route-match-overlap-fresh.trace docs/router/route-match-overlap.fizz`
   Passed.
 - `fizz --trace-file docs/router/route-match-overlap-adopt.trace docs/router/route-match-overlap.fizz`
@@ -1075,6 +1086,14 @@ Current verification status:
 - `fizz --trace-file docs/router/route-match-pending-fast.trace docs/router/route-match-pending.fizz`
   Passed.
 - `fizz --trace-file docs/router/route-match-pending-slow.trace docs/router/route-match-pending.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-terminal-cache-redirect.trace docs/router/route-match-terminal-cache.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-terminal-cache-notfound.trace docs/router/route-match-terminal-cache.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-terminal-cache-error.trace docs/router/route-match-terminal-cache.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-terminal-cache-stale-reload.trace docs/router/route-match-terminal-cache.fizz`
   Passed.
 - `fizz --trace-file docs/router/route-match-failures-root-notfound.trace docs/router/route-match-failures.fizz`
   Passed.
@@ -1095,6 +1114,7 @@ Initial model-driven corrections already made while starting phase 2:
 - overlap/reuse reachability works better as explicit guided traces than as `exists assertion`s in the current FizzBee toolchain
 - a later artifact failure must not retroactively poison a navigation that already reused fresh data; the overlap model now encodes that explicitly
 - failure precedence assertions had to be conditioned on higher-ranked outcomes being absent, which helped sharpen the semantic precedence rules
+- cacheability and success-reuse are distinct concerns: cached terminal outcomes are reusable as the same terminal outcome, while still not being reusable as success data
 
 Phase 2 exit criteria met:
 

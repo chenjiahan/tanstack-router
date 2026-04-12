@@ -20,6 +20,18 @@ Replace the current implicit, pool-and-promise-driven route-match loading pipeli
 - maps directly to the phase-2 FizzBee models
 - keeps adapter-specific mechanics out of router-core
 
+This is a first-principles rewrite.
+
+It is not a refactor that incrementally preserves the structure of the current implementation.
+
+The current code should be treated as an observable legacy implementation to learn from, not as the scaffold for the new design.
+
+In particular:
+
+- `packages/router-core/src/load-matches.ts` should probably be replaced in its entirety, not patched into compliance
+- `packages/react-router/src/Match.tsx` should be re-expressed around semantic render gates, not preserved as a throw-heavy decision tree
+- old helper structure, promise naming, and control-flow shape should not be carried forward just because they already exist
+
 ## Source Of Truth
 
 If current code, existing tests, and old implementation habits disagree, use this priority order:
@@ -45,6 +57,30 @@ Build a new internal route-match lifecycle that makes these semantic concepts ex
 - explicit hydration boundary semantics
 
 The rewrite should preserve observable semantics, not internal representation.
+
+The target outcome is a clean and readable implementation that looks like the models and the semantics we now understand, not a compatibility layer spread across the old architecture.
+
+## Rewrite Posture
+
+Use the existing code to answer questions like:
+
+- what observable behavior exists today?
+- which tests and edge cases need to be preserved intentionally?
+- where are the current bugs and accidental behaviors coming from?
+
+Do not use the existing code as the structural blueprint for the rewrite.
+
+Phase 3 should prefer:
+
+- new explicit lifecycle/state modules over reusing `load-matches.ts` helper clusters
+- direct semantic state over implicit promise choreography
+- small readable adapter mappings over large nested runtime branching
+
+Phase 3 should avoid:
+
+- duct-taping generation semantics on top of the current `load-matches.ts` shape
+- preserving legacy pool/promise coupling as the organizing principle
+- keeping React rendering control flow in its current many-throw form if semantic gates make a simpler structure possible
 
 ## What We Learned
 
@@ -95,6 +131,10 @@ Adapters should decide how to realize those facts:
 - Solid suspense/resource wiring
 - Vue DOM-safe rendering behavior
 
+The React consequence should be explicit: once router-core owns render gating semantically, `packages/react-router/src/Match.tsx` should not need dozens of distinct `throw`-driven control-flow paths.
+
+Some throws will still be appropriate because React Suspense and error boundaries require them, but the rewrite should aim for a small number of clearly justified throws that directly correspond to semantic gate transitions.
+
 ### 4. Reuse must be policy, not accidental object survival
 
 The rewrite should encode reuse rules explicitly.
@@ -104,9 +144,17 @@ Current intended policy:
 - `beforeLoad` is conservative preflight/context/authorization work
 - `loader` is reusable data acquisition work
 - fresh successful loader artifacts may be reused
+- fresh cached terminal outcomes may be reused as the same terminal outcome when policy allows
 - in-flight preload loader work may be adopted by navigation
-- terminal failure artifacts are not reusable as success data
+- terminal outcomes are cacheable under the same cache/eviction rules as successful matches
+- terminal outcomes are not reusable as success data
 - later artifact failure must not retroactively poison a navigation that already reused fresh data
+
+This distinction is important:
+
+- cacheable terminal outcome != reusable success payload
+- a cached `redirect`, `notFound`, or regular `error` may be reused as that same terminal outcome
+- it must never be reinterpreted as a successful data result
 
 ### 5. Slice models worked better than one monolithic model
 
@@ -210,9 +258,11 @@ While stale background work is running:
 Must preserve:
 
 - fresh artifact reuse on navigation
+- fresh terminal-outcome reuse on navigation
 - in-flight preload adoption by navigation
 - obsolete older generations never becoming the committed winner
-- failure artifacts not being reused as success data
+- terminal outcomes remaining cacheable under the same rules as non-terminal matches
+- terminal outcomes not being reused as success data
 
 ## What Must Not Be Copied From The Old Implementation
 
@@ -224,8 +274,12 @@ These are implementation accidents or legacy shapes, not rewrite goals.
 - `globalNotFound` as a required representation
 - hydration heuristics expressed as index-based hacks rather than boundary semantics
 - adapter behavior being driven directly by router-core promise lifetime accidents
+- the overall control-flow structure of `packages/router-core/src/load-matches.ts`
+- the current throw-heavy branching structure in `packages/react-router/src/Match.tsx`
 
 These may still exist internally if useful, but only as implementation details under clearer semantic state.
+
+The default assumption should be replacement, not preservation.
 
 ## Recommended Internal Architecture
 
@@ -266,7 +320,7 @@ The implementation does not need these exact names, but it should expose these c
 - acquisition status
 - freshness
 - reusable success payload
-- non-reusable terminal failure marker
+- reusable terminal outcome payload, if the current cached artifact is terminal
 - which generations are currently observing or adopting it
 
 ### Suggested Render-Gate API
@@ -296,6 +350,8 @@ Keep the implementation factored around these responsibilities:
 
 This is preferable to keeping all logic in one mega-pipeline, even if the old code centered around `loadMatches()`.
 
+If a proposed implementation still looks like a cleaned-up version of `load-matches.ts` rather than an explicit lifecycle built around generations, resources, outcomes, and render gates, it is probably too close to the old design.
+
 ## Recommended Rewrite Strategy
 
 ### 1. Keep the public API stable while replacing internals
@@ -304,16 +360,19 @@ Prefer replacing internal orchestration behind existing public router behavior.
 
 Do not start by redesigning public route APIs.
 
+But do replace internal loading/rendering orchestration aggressively if needed. The right bias is to write new internals that satisfy the models, then delete obsolete legacy machinery, not to incrementally massage the old machinery into shape.
+
 ### 2. Build the new core semantics before rewriting adapter mechanics
 
 Recommended order:
 
 1. introduce generation/resource/presence concepts in router-core
-2. reimplement finalization and commit logic around them
-3. reimplement preflight and loader orchestration
-4. expose semantic render gates to adapters
-5. port React adapter to semantic gates
-6. align Solid and Vue afterward
+2. build a new lifecycle/orchestration path around them instead of extending `load-matches.ts`
+3. reimplement finalization and commit logic around the new lifecycle
+4. reimplement preflight and loader orchestration
+5. expose semantic render gates to adapters
+6. port React adapter to semantic gates with a much simpler throw surface
+7. align Solid and Vue afterward
 
 ### 3. Port React first
 
@@ -327,6 +386,10 @@ The React adapter should consume semantic gates and preserve:
 - hydration boundary behavior
 
 React-specific promise handling should become an adapter implementation of semantic states, not the core lifecycle itself.
+
+The adapter target is readability and directness.
+
+With 20-20 hindsight, the rewritten `packages/react-router/src/Match.tsx` should be dramatically simpler than the current version. It should map semantic gate states to a small number of React mechanisms instead of embedding a large distributed control-flow machine in render.
 
 ### 4. Keep slice-based testability
 
@@ -348,12 +411,13 @@ Before considering the rewrite correct, the implementation should satisfy all of
 2. Render-visible route components never observe incomplete effective context.
 3. Redirects, notFound, and errors follow the modeled precedence and boundary rules.
 4. Fresh reuse and in-flight adoption match the overlap model.
-5. Background stale reloads cannot clobber newer committed state.
-6. Pending timing matches the pending model.
-7. Hydration semantics match the hydration model.
-8. React adapter behavior matches semantic render gates instead of inventing its own lifecycle.
-9. Existing tests are updated or replaced where they encode accidental legacy behavior.
-10. New focused tests exist for each model slice.
+5. Cached terminal outcomes follow the same cache/reuse/eviction rules as non-terminal matches, while preserving their terminal kind.
+6. Background stale reloads cannot clobber newer committed state.
+7. Pending timing matches the pending model.
+8. Hydration semantics match the hydration model.
+9. React adapter behavior matches semantic render gates instead of inventing its own lifecycle.
+10. Existing tests are updated or replaced where they encode accidental legacy behavior.
+11. New focused tests exist for each model slice.
 
 ## Remaining Doubts
 
@@ -411,6 +475,7 @@ Core and focused models:
 - `docs/router/route-match-background.fizz`
 - `docs/router/route-match-pending.fizz`
 - `docs/router/route-match-failures.fizz`
+- `docs/router/route-match-terminal-cache.fizz`
 
 Useful trace files:
 
@@ -420,6 +485,10 @@ Useful trace files:
 - `docs/router/route-match-background-failure.trace`
 - `docs/router/route-match-pending-fast.trace`
 - `docs/router/route-match-pending-slow.trace`
+- `docs/router/route-match-terminal-cache-redirect.trace`
+- `docs/router/route-match-terminal-cache-notfound.trace`
+- `docs/router/route-match-terminal-cache-error.trace`
+- `docs/router/route-match-terminal-cache-stale-reload.trace`
 - `docs/router/route-match-failures-root-notfound.trace`
 - `docs/router/route-match-failures-leaf-notfound.trace`
 - `docs/router/route-match-failures-notfound-redirect.trace`
@@ -433,10 +502,16 @@ Current code hotspots to replace or absorb:
 - `packages/router-core/src/ssr/ssr-client.ts`
 - `packages/react-router/src/Match.tsx`
 
+These files should be treated as legacy reference material, not as the skeleton of the new implementation.
+
+`packages/router-core/src/load-matches.ts` in particular should be assumed replaceable in full unless a very small isolated fragment is clearly worth carrying over.
+
 ## Final Instruction To A Phase 3 Agent
 
 Do not start by reshuffling the current code.
 
 Start by implementing explicit semantic state in router-core that matches the model suite. Then make React consume that state. Only after the semantic core is stable should you align the other adapters and remove obsolete legacy machinery.
+
+If you find yourself preserving the broad structure of `load-matches.ts` or reproducing the current many-branch `Match.tsx` control flow, stop and reset toward a cleaner first-principles design.
 
 If implementation work exposes uncertainty about semantics rather than code mechanics, stop and iterate on phase 2 before shipping the rewrite.

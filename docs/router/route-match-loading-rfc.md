@@ -5,7 +5,7 @@ title: Route Match Loading RFC
 
 # Route Match Loading And Rendering RFC
 
-Status: phase 1 core contract complete, phase 2 ready to start
+Status: phase 1 complete, phase 2 complete, phase 3 ready to start
 
 Owner: multi-session effort, React-first
 
@@ -1012,49 +1012,98 @@ What remains intentionally provisional going into phase 2:
 - whether strict cross-pool exclusivity is worth preserving as an implementation simplifier
 - whether the current compatibility precedence baseline should survive unchanged once modeled semantically
 
-## Phase 2 Progress
+## Phase 2 Status
 
-Phase 2 has started.
+Phase 2 is complete.
+
+The resulting artifact is a suite of focused executable FizzBee models, not one monolithic exhaustive model. The broad umbrella spec remains useful for exploration, but phase-2 correctness is now carried by the focused slice models below.
 
 Artifacts added:
 
-- executable model: `docs/router/route-match-loading.fizz`
-- tiny exhaustive-check config: `docs/router/route-match-loading-tiny.cfg`
-- two-generation exploratory config: `docs/router/route-match-loading-small.cfg`
+- core model: `docs/router/route-match-loading.fizz`
+- core tiny exhaustive-check config: `docs/router/route-match-loading-tiny.cfg`
+- core two-generation exploratory config: `docs/router/route-match-loading-small.cfg`
+- hydration-focused model: `docs/router/route-match-hydration.fizz`
+- overlap/reuse-focused model: `docs/router/route-match-overlap.fizz`
+- background-reload-focused model: `docs/router/route-match-background.fizz`
+- pending-timing-focused model: `docs/router/route-match-pending.fizz`
+- failure-precedence-focused model: `docs/router/route-match-failures.fizz`
+- overlap scenario traces: `docs/router/route-match-overlap-fresh.trace`, `docs/router/route-match-overlap-adopt.trace`
+- background scenario traces: `docs/router/route-match-background-late-success.trace`, `docs/router/route-match-background-failure.trace`
+- pending scenario traces: `docs/router/route-match-pending-fast.trace`, `docs/router/route-match-pending-slow.trace`
+- failure scenario traces: `docs/router/route-match-failures-root-notfound.trace`, `docs/router/route-match-failures-leaf-notfound.trace`, `docs/router/route-match-failures-notfound-redirect.trace`, `docs/router/route-match-failures-error-vs-loader-notfound.trace`, `docs/router/route-match-failures-leaf-loader-error.trace`
 
-Current modeled semantics:
+Phase-1 semantic coverage now maps to the suite like this:
 
-- committed tree vs candidate generation separation
-- route presence identity vs reusable leaf-resource identity
-- serial `beforeLoad` progression with parent-context gating
-- parallel loader progression after serial preflight
-- redirect dominance during finalization
-- notFound boundary ownership and root-shell preservation
-- reusable artifact success reuse, in-flight adoption, and failure non-reuse
-- stale-generation protection for committed-state updates
-- commit atomicity as a model assertion
+- committed tree vs candidate generation separation, effective context readiness, notFound root-shell preservation, and core finalization structure: `docs/router/route-match-loading.fizz`
+- hydration boundary semantics for fully SSR-backed, `data-only`, and `client-only` leaf boundaries: `docs/router/route-match-hydration.fizz`
+- fresh artifact reuse, preload adoption, obsolete-generation non-commit, and generation-local reuse safety: `docs/router/route-match-overlap.fizz`
+- background stale reload and late-completion non-clobbering: `docs/router/route-match-background.fizz`
+- pending timing contract (`pendingMs` / `pendingMinMs`) at the semantic level: `docs/router/route-match-pending.fizz`
+- failure precedence, ancestor preservation, redirect dominance, and error/notFound boundary ownership: `docs/router/route-match-failures.fizz`
 
-Not yet modeled in the first executable spec:
+Items intentionally left out of the phase-2 suite because they are implementation refinements rather than blockers for phase 3:
 
-- hydration boundary semantics
-- adapter-specific pending display timing beyond the abstract contract
-- a richer cross-generation model with exhaustive overlap checking for multiple live generations
-- more precise error-boundary ownership beyond the current simplified source-owner rule
+- one shared exhaustive model covering every slice at once
+- adapter-specific rendering mechanics such as React promise throwing or Vue DOM workarounds
+- code-splitting, chunk loading, and head/script asset semantics beyond their effect on readiness and boundary availability
 
 Current verification status:
 
 - `fizz --preinit-hook-file docs/router/route-match-loading-tiny.cfg docs/router/route-match-loading.fizz`
   Passed with `Valid Nodes: 12954` and `Unique states: 1007`.
 - `fizz --preinit-hook-file docs/router/route-match-loading-small.cfg docs/router/route-match-loading.fizz`
-  Remains useful for exploration but currently exceeds the 2-minute local command budget; it is the next target for state-space reduction or scenario-focused guided traces.
+  Remains useful for exploration but currently exceeds the 2-minute local command budget; it is now treated as an exploratory umbrella model rather than the only overlap-checking path.
+- `fizz docs/router/route-match-hydration.fizz`
+  Passed with `Valid Nodes: 11` and `Unique states: 10`.
+- `fizz docs/router/route-match-overlap.fizz`
+  Passed with `Valid Nodes: 162` and `Unique states: 162`.
+- `fizz docs/router/route-match-background.fizz`
+  Passed with `Valid Nodes: 36` and `Unique states: 36`.
+- `fizz docs/router/route-match-pending.fizz`
+  Passed with `Valid Nodes: 7` and `Unique states: 7`.
+- `fizz docs/router/route-match-failures.fizz`
+  Passed with `Valid Nodes: 1740` and `Unique states: 348`.
+- `fizz --trace-file docs/router/route-match-overlap-fresh.trace docs/router/route-match-overlap.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-overlap-adopt.trace docs/router/route-match-overlap.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-background-late-success.trace docs/router/route-match-background.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-background-failure.trace docs/router/route-match-background.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-pending-fast.trace docs/router/route-match-pending.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-pending-slow.trace docs/router/route-match-pending.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-failures-root-notfound.trace docs/router/route-match-failures.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-failures-leaf-notfound.trace docs/router/route-match-failures.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-failures-notfound-redirect.trace docs/router/route-match-failures.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-failures-error-vs-loader-notfound.trace docs/router/route-match-failures.fizz`
+  Passed.
+- `fizz --trace-file docs/router/route-match-failures-leaf-loader-error.trace docs/router/route-match-failures.fizz`
+  Passed.
 
 Initial model-driven corrections already made while starting phase 2:
 
 - root-shell notFound rendering needed explicit context completion in the model to satisfy the context-ready invariant
 - fresh-artifact reuse needed a generation-local assertion rather than one tied to the artifact's later global state
 - the phase-2 model structure worked better when helper logic was inlined instead of relying on top-level function calls in FizzBee actions
+- overlap/reuse reachability works better as explicit guided traces than as `exists assertion`s in the current FizzBee toolchain
+- a later artifact failure must not retroactively poison a navigation that already reused fresh data; the overlap model now encodes that explicitly
+- failure precedence assertions had to be conditioned on higher-ranked outcomes being absent, which helped sharpen the semantic precedence rules
 
-## Phase 2 Bootstrap
+Phase 2 exit criteria met:
+
+- every remaining phase-1 semantic gap was given a focused executable model or trace-backed scenario
+- all focused slice models pass exhaustive bounded checks
+- all critical scenario traces pass
+- remaining non-modeled details are now implementation refinements, not blockers for phase 3
+
+## Phase 2 Bootstrap (Historical)
 
 Phase 1's core semantic contract is complete enough to start modeling.
 

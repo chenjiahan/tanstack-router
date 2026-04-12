@@ -1,0 +1,176 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 10
+  max_concurrent_actions: 1
+---
+
+# Phase 2 hydration-focused model.
+#
+# This spec isolates hydration boundary semantics from the broader overlap/reuse
+# model so we can check the cross-adapter contract without paying the full
+# multi-generation state-space cost.
+
+Presence = enum('ROOT', 'PARENT', 'LEAF')
+HydrationMode = enum('SERVER_DOM', 'DATA_ONLY', 'CLIENT_ONLY')
+RenderGate = enum('BLOCKED', 'PENDING', 'READY', 'ERROR')
+DataState = enum('NONE', 'READY', 'LOADING', 'ERROR')
+
+PRESENCES = [Presence.ROOT, Presence.PARENT, Presence.LEAF]
+
+action Init:
+    hydration_started = False
+    hydration_completed = False
+    client_load_required = False
+    client_load_started = False
+    client_load_completed = False
+    client_load_failed = False
+    hydration_boundary = None
+
+    hydration_mode = {}
+    render_gate = {}
+    data_state = {}
+
+    hydration_mode[Presence.ROOT] = HydrationMode.SERVER_DOM
+    hydration_mode[Presence.PARENT] = HydrationMode.SERVER_DOM
+    hydration_mode[Presence.LEAF] = HydrationMode.SERVER_DOM
+
+    for p in PRESENCES:
+        render_gate[p] = RenderGate.BLOCKED
+        data_state[p] = DataState.NONE
+
+atomic action StartHydration:
+    require hydration_started == False
+    leaf_mode = oneof [HydrationMode.SERVER_DOM, HydrationMode.DATA_ONLY, HydrationMode.CLIENT_ONLY]
+
+    hydration_started = True
+    hydration_mode[Presence.LEAF] = leaf_mode
+
+    render_gate[Presence.ROOT] = RenderGate.READY
+    render_gate[Presence.PARENT] = RenderGate.READY
+    data_state[Presence.ROOT] = DataState.READY
+    data_state[Presence.PARENT] = DataState.READY
+
+    if leaf_mode == HydrationMode.SERVER_DOM:
+        hydration_boundary = None
+        client_load_required = False
+        hydration_completed = True
+        render_gate[Presence.LEAF] = RenderGate.READY
+        data_state[Presence.LEAF] = DataState.READY
+        return
+
+    hydration_boundary = Presence.LEAF
+    client_load_required = True
+    render_gate[Presence.LEAF] = RenderGate.PENDING
+
+    if leaf_mode == HydrationMode.DATA_ONLY:
+        data_state[Presence.LEAF] = DataState.READY
+    else:
+        data_state[Presence.LEAF] = DataState.NONE
+
+atomic action StartClientLoad:
+    require hydration_started
+    require client_load_required
+    require client_load_started == False
+
+    client_load_started = True
+
+    if hydration_mode[Presence.LEAF] == HydrationMode.CLIENT_ONLY:
+        data_state[Presence.LEAF] = DataState.LOADING
+
+atomic action CompleteClientLoadSuccess:
+    require client_load_started
+    require client_load_completed == False
+    require client_load_failed == False
+
+    client_load_completed = True
+    hydration_completed = True
+    render_gate[Presence.LEAF] = RenderGate.READY
+    data_state[Presence.LEAF] = DataState.READY
+
+atomic action CompleteClientLoadError:
+    require client_load_started
+    require client_load_completed == False
+    require client_load_failed == False
+
+    client_load_failed = True
+    hydration_completed = True
+    render_gate[Presence.LEAF] = RenderGate.ERROR
+    data_state[Presence.LEAF] = DataState.ERROR
+
+always assertion HydrationBoundaryIsFirstClientOwned:
+    if hydration_started == False:
+        return True
+
+    if hydration_mode[Presence.LEAF] == HydrationMode.SERVER_DOM:
+        return hydration_boundary == None
+
+    return hydration_boundary == Presence.LEAF
+
+always assertion FullSSRHydrationSkipsClientLoad:
+    if hydration_mode[Presence.LEAF] != HydrationMode.SERVER_DOM:
+        return True
+
+    if client_load_required:
+        return False
+    if client_load_started:
+        return False
+    return True
+
+always assertion HydratedPrefixRemainsRenderable:
+    if hydration_started == False:
+        return True
+
+    if render_gate[Presence.ROOT] != RenderGate.READY:
+        return False
+    if render_gate[Presence.PARENT] != RenderGate.READY:
+        return False
+    if data_state[Presence.ROOT] != DataState.READY:
+        return False
+    if data_state[Presence.PARENT] != DataState.READY:
+        return False
+    return True
+
+always assertion DataOnlyUsesServerDataButClientDOM:
+    if hydration_mode[Presence.LEAF] != HydrationMode.DATA_ONLY:
+        return True
+
+    if client_load_completed == False and client_load_failed == False:
+        if data_state[Presence.LEAF] != DataState.READY:
+            return False
+        if render_gate[Presence.LEAF] != RenderGate.PENDING:
+            return False
+
+    return True
+
+always assertion ClientOnlyBelowBoundaryNotReadyEarly:
+    if hydration_mode[Presence.LEAF] != HydrationMode.CLIENT_ONLY:
+        return True
+
+    if client_load_completed == False and render_gate[Presence.LEAF] == RenderGate.READY:
+        return False
+
+    if client_load_completed == False and data_state[Presence.LEAF] == DataState.READY:
+        return False
+
+    return True
+
+always assertion HydrationFailureDoesNotCorruptHydratedPrefix:
+    if render_gate[Presence.LEAF] != RenderGate.ERROR:
+        return True
+
+    if render_gate[Presence.ROOT] != RenderGate.READY:
+        return False
+    if render_gate[Presence.PARENT] != RenderGate.READY:
+        return False
+    return True
+
+always assertion PendingOnlyAtHydrationBoundary:
+    for p in [Presence.ROOT, Presence.PARENT]:
+        if render_gate[p] == RenderGate.PENDING:
+            return False
+
+    if render_gate[Presence.LEAF] == RenderGate.PENDING and hydration_boundary != Presence.LEAF:
+        return False
+
+    return True

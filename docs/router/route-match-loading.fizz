@@ -1,0 +1,529 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 20
+  max_concurrent_actions: 1
+---
+
+# Phase 2 initial model for route-match loading semantics.
+#
+# This first executable spec focuses on:
+# - committed tree vs candidate generations
+# - route presence identity vs reusable loader artifacts
+# - serial beforeLoad then parallel loaders
+# - redirect dominance and notFound boundary ownership
+# - preload/background artifact reuse
+# - stale-generation isolation for committed state
+#
+# It intentionally does not yet model all hydration details or adapter-specific
+# rendering mechanics. Those will layer on top of the semantic render-gate model.
+
+Presence = enum('ROOT', 'PARENT', 'LEAF')
+Entry = enum('NONE', 'INITIAL', 'NAVIGATION', 'PRELOAD', 'BACKGROUND')
+PreflightState = enum('NOT_STARTED', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+DataState = enum('NOT_STARTED', 'IN_FLIGHT', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+ContextState = enum('UNKNOWN', 'PARENT_READY', 'READY')
+RenderGate = enum('BLOCKED', 'PENDING', 'READY', 'NOT_FOUND', 'ERROR')
+Outcome = enum('NONE', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+ArtifactState = enum('NONE', 'IN_FLIGHT', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+Freshness = enum('NONE', 'FRESH', 'STALE', 'INVALID')
+Obsolescence = enum('LIVE', 'OBSOLETE')
+Resource = enum('LEAF_A', 'LEAF_B')
+
+GEN_IDS = [1, 2, 3]
+PRESENCES = [Presence.ROOT, Presence.PARENT, Presence.LEAF]
+RESOURCES = [Resource.LEAF_A, Resource.LEAF_B]
+
+atomic func initialize_generation(g, entry, leaf_resource):
+    generation_entry[g] = entry
+    generation_obsolete[g] = Obsolescence.LIVE
+    generation_candidate_tree[g] = [Presence.ROOT, Presence.PARENT, Presence.LEAF]
+    generation_leaf_resource[g] = leaf_resource
+    generation_serial_cursor[g] = Presence.ROOT
+    generation_provisional_outcome[g] = Outcome.NONE
+    generation_final_outcome[g] = Outcome.NONE
+    generation_boundary_owner[g] = None
+    generation_error_source[g] = None
+    generation_root_shell_preserved[g] = False
+    generation_loaders_launched[g] = False
+    generation_used_fresh_artifact[g] = False
+    generation_adopted_inflight[g] = False
+
+    for p in PRESENCES:
+        preflight_state[(g, p)] = PreflightState.NOT_STARTED
+        data_state[(g, p)] = DataState.NOT_STARTED
+        context_state[(g, p)] = ContextState.UNKNOWN
+        render_gate[(g, p)] = RenderGate.BLOCKED
+
+    context_state[(g, Presence.ROOT)] = ContextState.PARENT_READY
+
+action Init:
+    next_generation = 1
+    committed_tree = []
+    committed_generation = 0
+
+    generation_entry = {}
+    generation_obsolete = {}
+    generation_candidate_tree = {}
+    generation_leaf_resource = {}
+    generation_serial_cursor = {}
+    generation_provisional_outcome = {}
+    generation_final_outcome = {}
+    generation_boundary_owner = {}
+    generation_error_source = {}
+    generation_root_shell_preserved = {}
+    generation_loaders_launched = {}
+    generation_used_fresh_artifact = {}
+    generation_adopted_inflight = {}
+
+    preflight_state = {}
+    data_state = {}
+    context_state = {}
+    render_gate = {}
+
+    artifact_state = {}
+    artifact_freshness = {}
+
+    for resource in RESOURCES:
+        artifact_state[resource] = ArtifactState.NONE
+        artifact_freshness[resource] = Freshness.NONE
+
+    for g in GEN_IDS:
+        generation_entry[g] = Entry.NONE
+        generation_obsolete[g] = Obsolescence.OBSOLETE
+        generation_candidate_tree[g] = []
+        generation_leaf_resource[g] = None
+        generation_serial_cursor[g] = None
+        generation_provisional_outcome[g] = Outcome.NONE
+        generation_final_outcome[g] = Outcome.NONE
+        generation_boundary_owner[g] = None
+        generation_error_source[g] = None
+        generation_root_shell_preserved[g] = False
+        generation_loaders_launched[g] = False
+        generation_used_fresh_artifact[g] = False
+        generation_adopted_inflight[g] = False
+
+        for p in PRESENCES:
+            preflight_state[(g, p)] = PreflightState.NOT_STARTED
+            data_state[(g, p)] = DataState.NOT_STARTED
+            context_state[(g, p)] = ContextState.UNKNOWN
+            render_gate[(g, p)] = RenderGate.BLOCKED
+
+atomic action StartInitialLoad:
+    require next_generation == 1
+    initialize_generation(next_generation, Entry.INITIAL, Resource.LEAF_A)
+    next_generation = next_generation + 1
+
+atomic action StartPreload:
+    require committed_generation != 0
+    require next_generation <= 3
+    require len([g for g in GEN_IDS if generation_entry[g] == Entry.PRELOAD and generation_obsolete[g] == Obsolescence.LIVE]) == 0
+    leaf_resource = oneof RESOURCES
+    initialize_generation(next_generation, Entry.PRELOAD, leaf_resource)
+    next_generation = next_generation + 1
+
+atomic action StartNavigation:
+    require committed_generation != 0
+    require next_generation <= 3
+    leaf_resource = oneof RESOURCES
+
+    for g in GEN_IDS:
+        if generation_entry[g] != Entry.NONE and generation_obsolete[g] == Obsolescence.LIVE and g != committed_generation:
+            generation_obsolete[g] = Obsolescence.OBSOLETE
+
+    initialize_generation(next_generation, Entry.NAVIGATION, leaf_resource)
+    next_generation = next_generation + 1
+
+atomic action MarkCommittedArtifactStale:
+    require committed_generation != 0
+    resource = generation_leaf_resource[committed_generation]
+    require artifact_state[resource] == ArtifactState.SUCCESS
+    artifact_freshness[resource] = Freshness.STALE
+
+atomic action InvalidateCommittedResource:
+    require committed_generation != 0
+    resource = generation_leaf_resource[committed_generation]
+    require artifact_state[resource] == ArtifactState.SUCCESS
+    artifact_freshness[resource] = Freshness.INVALID
+
+atomic action StartBackgroundReload:
+    require committed_generation != 0
+    require next_generation <= 3
+    resource = generation_leaf_resource[committed_generation]
+    require artifact_freshness[resource] in [Freshness.STALE, Freshness.INVALID]
+    initialize_generation(next_generation, Entry.BACKGROUND, resource)
+    next_generation = next_generation + 1
+
+atomic action ResolveBeforeLoadSuccess:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE and generation_serial_cursor[gen] != None
+    p = generation_serial_cursor[gen]
+
+    preflight_state[(gen, p)] = PreflightState.SUCCESS
+    context_state[(gen, p)] = ContextState.READY
+
+    nxt = None
+    if p == Presence.ROOT:
+        nxt = Presence.PARENT
+    elif p == Presence.PARENT:
+        nxt = Presence.LEAF
+
+    if nxt != None:
+        context_state[(gen, nxt)] = ContextState.PARENT_READY
+
+    generation_serial_cursor[gen] = nxt
+
+atomic action ResolveBeforeLoadRedirect:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE and generation_serial_cursor[gen] != None
+    p = generation_serial_cursor[gen]
+    preflight_state[(gen, p)] = PreflightState.REDIRECT
+    generation_provisional_outcome[gen] = Outcome.REDIRECT
+    generation_final_outcome[gen] = Outcome.REDIRECT
+    generation_serial_cursor[gen] = None
+
+atomic action ResolveBeforeLoadNotFound:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE and generation_serial_cursor[gen] != None
+    p = generation_serial_cursor[gen]
+    preflight_state[(gen, p)] = PreflightState.NOT_FOUND
+    generation_provisional_outcome[gen] = Outcome.NOT_FOUND
+    if p == Presence.ROOT:
+        generation_boundary_owner[gen] = Presence.ROOT
+    else:
+        generation_boundary_owner[gen] = Presence.PARENT
+    generation_serial_cursor[gen] = None
+
+atomic action ResolveBeforeLoadError:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE and generation_serial_cursor[gen] != None
+    p = generation_serial_cursor[gen]
+    preflight_state[(gen, p)] = PreflightState.ERROR
+    generation_provisional_outcome[gen] = Outcome.ERROR
+    generation_error_source[gen] = p
+    generation_serial_cursor[gen] = None
+
+atomic action LaunchEligibleLoaders:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require generation_serial_cursor[gen] == None
+    require generation_loaders_launched[gen] == False
+    require generation_final_outcome[gen] != Outcome.REDIRECT
+
+    limit = 2
+    if generation_provisional_outcome[gen] == Outcome.NOT_FOUND:
+        if generation_boundary_owner[gen] == Presence.ROOT:
+            limit = 0
+        else:
+            limit = 1
+    elif generation_provisional_outcome[gen] == Outcome.ERROR:
+        if generation_error_source[gen] == Presence.ROOT:
+            limit = -1
+        elif generation_error_source[gen] == Presence.PARENT:
+            limit = 0
+        else:
+            limit = 1
+
+    for p in PRESENCES:
+        p_depth = 0
+        if p == Presence.PARENT:
+            p_depth = 1
+        elif p == Presence.LEAF:
+            p_depth = 2
+
+        if p_depth <= limit:
+            if p == Presence.LEAF:
+                resource = generation_leaf_resource[gen]
+                if generation_entry[gen] == Entry.NAVIGATION and artifact_state[resource] == ArtifactState.SUCCESS and artifact_freshness[resource] == Freshness.FRESH:
+                    data_state[(gen, p)] = DataState.SUCCESS
+                    generation_used_fresh_artifact[gen] = True
+                else:
+                    data_state[(gen, p)] = DataState.IN_FLIGHT
+                    if artifact_state[resource] == ArtifactState.IN_FLIGHT:
+                        generation_adopted_inflight[gen] = True
+                    else:
+                        artifact_state[resource] = ArtifactState.IN_FLIGHT
+                        artifact_freshness[resource] = Freshness.NONE
+            else:
+                data_state[(gen, p)] = DataState.IN_FLIGHT
+
+    generation_loaders_launched[gen] = True
+
+atomic action ResolveLoaderSuccess:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require len([p for p in PRESENCES if data_state[(gen, p)] == DataState.IN_FLIGHT]) > 0
+    p = oneof PRESENCES
+    require data_state[(gen, p)] == DataState.IN_FLIGHT
+
+    if p == Presence.LEAF:
+        resource = generation_leaf_resource[gen]
+        if artifact_state[resource] == ArtifactState.IN_FLIGHT:
+            artifact_state[resource] = ArtifactState.SUCCESS
+            artifact_freshness[resource] = Freshness.FRESH
+            for g in GEN_IDS:
+                if generation_leaf_resource[g] == resource and data_state[(g, Presence.LEAF)] == DataState.IN_FLIGHT:
+                    data_state[(g, Presence.LEAF)] = DataState.SUCCESS
+        else:
+            data_state[(gen, p)] = DataState.SUCCESS
+        return
+
+    data_state[(gen, p)] = DataState.SUCCESS
+
+atomic action ResolveLoaderRedirect:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require len([p for p in PRESENCES if data_state[(gen, p)] == DataState.IN_FLIGHT]) > 0
+    p = oneof PRESENCES
+    require data_state[(gen, p)] == DataState.IN_FLIGHT
+
+    if p == Presence.LEAF:
+        resource = generation_leaf_resource[gen]
+        if artifact_state[resource] == ArtifactState.IN_FLIGHT:
+            artifact_state[resource] = ArtifactState.REDIRECT
+            artifact_freshness[resource] = Freshness.NONE
+            for g in GEN_IDS:
+                if generation_leaf_resource[g] == resource and data_state[(g, Presence.LEAF)] == DataState.IN_FLIGHT:
+                    data_state[(g, Presence.LEAF)] = DataState.REDIRECT
+        else:
+            data_state[(gen, p)] = DataState.REDIRECT
+        return
+
+    data_state[(gen, p)] = DataState.REDIRECT
+
+atomic action ResolveLoaderNotFound:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require len([p for p in PRESENCES if data_state[(gen, p)] == DataState.IN_FLIGHT]) > 0
+    p = oneof PRESENCES
+    require data_state[(gen, p)] == DataState.IN_FLIGHT
+
+    if p == Presence.LEAF:
+        resource = generation_leaf_resource[gen]
+        if artifact_state[resource] == ArtifactState.IN_FLIGHT:
+            artifact_state[resource] = ArtifactState.NOT_FOUND
+            artifact_freshness[resource] = Freshness.NONE
+            for g in GEN_IDS:
+                if generation_leaf_resource[g] == resource and data_state[(g, Presence.LEAF)] == DataState.IN_FLIGHT:
+                    data_state[(g, Presence.LEAF)] = DataState.NOT_FOUND
+        else:
+            data_state[(gen, p)] = DataState.NOT_FOUND
+        return
+
+    data_state[(gen, p)] = DataState.NOT_FOUND
+
+atomic action ResolveLoaderError:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require len([p for p in PRESENCES if data_state[(gen, p)] == DataState.IN_FLIGHT]) > 0
+    p = oneof PRESENCES
+    require data_state[(gen, p)] == DataState.IN_FLIGHT
+
+    if p == Presence.LEAF:
+        resource = generation_leaf_resource[gen]
+        if artifact_state[resource] == ArtifactState.IN_FLIGHT:
+            artifact_state[resource] = ArtifactState.ERROR
+            artifact_freshness[resource] = Freshness.NONE
+            for g in GEN_IDS:
+                if generation_leaf_resource[g] == resource and data_state[(g, Presence.LEAF)] == DataState.IN_FLIGHT:
+                    data_state[(g, Presence.LEAF)] = DataState.ERROR
+        else:
+            data_state[(gen, p)] = DataState.ERROR
+        return
+
+    data_state[(gen, p)] = DataState.ERROR
+
+atomic action FinalizeGeneration:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require generation_final_outcome[gen] == Outcome.NONE
+    require generation_serial_cursor[gen] == None
+    require generation_provisional_outcome[gen] == Outcome.REDIRECT or (generation_loaders_launched[gen] and len([p for p in PRESENCES if data_state[(gen, p)] == DataState.IN_FLIGHT]) == 0)
+
+    redirect_source = None
+    error_source = None
+    not_found_source = None
+    for p in PRESENCES:
+        if redirect_source == None and (preflight_state[(gen, p)] == PreflightState.REDIRECT or data_state[(gen, p)] == DataState.REDIRECT):
+            redirect_source = p
+        if error_source == None and (preflight_state[(gen, p)] == PreflightState.ERROR or data_state[(gen, p)] == DataState.ERROR):
+            error_source = p
+        if not_found_source == None and (preflight_state[(gen, p)] == PreflightState.NOT_FOUND or data_state[(gen, p)] == DataState.NOT_FOUND):
+            not_found_source = p
+
+    if generation_provisional_outcome[gen] == Outcome.REDIRECT or redirect_source != None:
+        generation_final_outcome[gen] = Outcome.REDIRECT
+        return
+
+    if error_source != None or generation_provisional_outcome[gen] == Outcome.ERROR:
+        generation_final_outcome[gen] = Outcome.ERROR
+        if error_source == None:
+            error_source = generation_error_source[gen]
+        generation_boundary_owner[gen] = error_source
+        if error_source == Presence.ROOT:
+            context_state[(gen, Presence.ROOT)] = ContextState.READY
+            render_gate[(gen, Presence.ROOT)] = RenderGate.ERROR
+            render_gate[(gen, Presence.PARENT)] = RenderGate.BLOCKED
+            render_gate[(gen, Presence.LEAF)] = RenderGate.BLOCKED
+        elif error_source == Presence.PARENT:
+            context_state[(gen, Presence.ROOT)] = ContextState.READY
+            context_state[(gen, Presence.PARENT)] = ContextState.READY
+            render_gate[(gen, Presence.ROOT)] = RenderGate.READY
+            render_gate[(gen, Presence.PARENT)] = RenderGate.ERROR
+            render_gate[(gen, Presence.LEAF)] = RenderGate.BLOCKED
+        else:
+            context_state[(gen, Presence.ROOT)] = ContextState.READY
+            context_state[(gen, Presence.PARENT)] = ContextState.READY
+            context_state[(gen, Presence.LEAF)] = ContextState.READY
+            render_gate[(gen, Presence.ROOT)] = RenderGate.READY
+            render_gate[(gen, Presence.PARENT)] = RenderGate.READY
+            render_gate[(gen, Presence.LEAF)] = RenderGate.ERROR
+        return
+
+    if not_found_source != None or generation_provisional_outcome[gen] == Outcome.NOT_FOUND:
+        generation_final_outcome[gen] = Outcome.NOT_FOUND
+        if not_found_source == None:
+            if generation_boundary_owner[gen] == Presence.ROOT:
+                generation_boundary_owner[gen] = Presence.ROOT
+            else:
+                generation_boundary_owner[gen] = Presence.PARENT
+        else:
+            if not_found_source == Presence.ROOT:
+                generation_boundary_owner[gen] = Presence.ROOT
+            else:
+                generation_boundary_owner[gen] = Presence.PARENT
+
+        owner = generation_boundary_owner[gen]
+        if owner == Presence.ROOT:
+            generation_root_shell_preserved[gen] = True
+            context_state[(gen, Presence.ROOT)] = ContextState.READY
+            render_gate[(gen, Presence.ROOT)] = RenderGate.READY
+            render_gate[(gen, Presence.PARENT)] = RenderGate.BLOCKED
+            render_gate[(gen, Presence.LEAF)] = RenderGate.BLOCKED
+            return
+
+        context_state[(gen, Presence.ROOT)] = ContextState.READY
+        context_state[(gen, Presence.PARENT)] = ContextState.READY
+        render_gate[(gen, Presence.ROOT)] = RenderGate.READY
+        render_gate[(gen, Presence.PARENT)] = RenderGate.NOT_FOUND
+        render_gate[(gen, Presence.LEAF)] = RenderGate.BLOCKED
+        return
+
+    generation_final_outcome[gen] = Outcome.SUCCESS
+    for p in PRESENCES:
+        render_gate[(gen, p)] = RenderGate.READY
+
+atomic action CommitCandidateTree:
+    gen = oneof GEN_IDS
+    require generation_entry[gen] != Entry.NONE and generation_obsolete[gen] == Obsolescence.LIVE
+    require generation_entry[gen] != Entry.PRELOAD
+    require generation_final_outcome[gen] in [Outcome.SUCCESS, Outcome.NOT_FOUND, Outcome.ERROR]
+
+    previous_committed = committed_generation
+    committed_tree = generation_candidate_tree[gen]
+    committed_generation = gen
+
+    if previous_committed != 0 and previous_committed != gen:
+        generation_obsolete[previous_committed] = Obsolescence.OBSOLETE
+
+    for g in GEN_IDS:
+        if g != gen and generation_entry[g] != Entry.NONE and generation_entry[g] != Entry.PRELOAD and generation_obsolete[g] == Obsolescence.LIVE:
+            generation_obsolete[g] = Obsolescence.OBSOLETE
+
+always assertion ReadyImpliesContextReady:
+    for g in GEN_IDS:
+        for p in PRESENCES:
+            if render_gate[(g, p)] == RenderGate.READY and context_state[(g, p)] != ContextState.READY:
+                return False
+    return True
+
+always assertion BeforeLoadIsSerial:
+    for g in GEN_IDS:
+        if preflight_state[(g, Presence.PARENT)] != PreflightState.NOT_STARTED and preflight_state[(g, Presence.ROOT)] != PreflightState.SUCCESS:
+            return False
+        if preflight_state[(g, Presence.LEAF)] != PreflightState.NOT_STARTED and preflight_state[(g, Presence.PARENT)] != PreflightState.SUCCESS:
+            return False
+    return True
+
+always assertion CommittedGenerationIsLive:
+    if committed_generation == 0:
+        return True
+    return generation_obsolete[committed_generation] == Obsolescence.LIVE
+
+always assertion CommitMatchesCandidate:
+    if committed_generation == 0:
+        return True
+    return committed_tree == generation_candidate_tree[committed_generation]
+
+always assertion NotFoundBoundaryOwnerCorrect:
+    for g in GEN_IDS:
+        if generation_final_outcome[g] == Outcome.NOT_FOUND:
+            owner = generation_boundary_owner[g]
+            if owner == None:
+                return False
+
+            source = None
+            for p in PRESENCES:
+                if source == None and (preflight_state[(g, p)] == PreflightState.NOT_FOUND or data_state[(g, p)] == DataState.NOT_FOUND):
+                    source = p
+
+            expected_owner = owner
+            if source != None:
+                if source == Presence.ROOT:
+                    expected_owner = Presence.ROOT
+                else:
+                    expected_owner = Presence.PARENT
+
+            if owner != expected_owner:
+                return False
+    return True
+
+always assertion AncestorPreservedOnLeafBeforeLoadNotFound:
+    for g in GEN_IDS:
+        if preflight_state[(g, Presence.LEAF)] == PreflightState.NOT_FOUND and generation_loaders_launched[g]:
+            if data_state[(g, Presence.ROOT)] == DataState.NOT_STARTED:
+                return False
+            if data_state[(g, Presence.PARENT)] == DataState.NOT_STARTED:
+                return False
+            if data_state[(g, Presence.LEAF)] != DataState.NOT_STARTED:
+                return False
+    return True
+
+always assertion FreshArtifactReuseProducesLeafSuccess:
+    for g in GEN_IDS:
+        if generation_used_fresh_artifact[g]:
+            if generation_entry[g] != Entry.NAVIGATION:
+                return False
+            if generation_leaf_resource[g] == None:
+                return False
+            if data_state[(g, Presence.LEAF)] != DataState.SUCCESS:
+                return False
+    return True
+
+always assertion NoFailureArtifactReuseAsSuccess:
+    for resource in RESOURCES:
+        if artifact_state[resource] in [ArtifactState.REDIRECT, ArtifactState.NOT_FOUND, ArtifactState.ERROR]:
+            for g in GEN_IDS:
+                if generation_leaf_resource[g] == resource and generation_used_fresh_artifact[g]:
+                    return False
+    return True
+
+always assertion RootNotFoundPreservesShell:
+    for g in GEN_IDS:
+        if generation_final_outcome[g] == Outcome.NOT_FOUND and generation_boundary_owner[g] == Presence.ROOT:
+            if generation_root_shell_preserved[g] == False:
+                return False
+            if render_gate[(g, Presence.ROOT)] != RenderGate.READY:
+                return False
+    return True
+
+always assertion ObsoleteGenerationNeverCommitted:
+    for g in GEN_IDS:
+        if generation_obsolete[g] == Obsolescence.OBSOLETE and committed_generation == g:
+            return False
+    return True
+
+always assertion CommitUsesResolvedGeneration:
+    if committed_generation == 0:
+        return True
+    return generation_final_outcome[committed_generation] in [Outcome.SUCCESS, Outcome.NOT_FOUND, Outcome.ERROR]

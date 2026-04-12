@@ -1,0 +1,181 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 14
+  max_concurrent_actions: 1
+---
+
+# Phase 2 overlap-focused model.
+#
+# This spec isolates one high-value overlapping-generation slice:
+# - a committed base route already exists
+# - a preload may start an in-flight artifact load
+# - a newer navigation may adopt that in-flight artifact or reuse a fresh one
+# - obsolete generations must not commit visible state
+
+Generation = enum('OLDER', 'NEWER')
+Entry = enum('NONE', 'PRELOAD', 'NAVIGATION')
+PreflightState = enum('NOT_STARTED', 'SUCCESS')
+DataState = enum('NOT_STARTED', 'IN_FLIGHT', 'SUCCESS', 'FAILURE')
+ArtifactState = enum('SUCCESS', 'IN_FLIGHT', 'NON_REUSABLE_FAILURE')
+Freshness = enum('FRESH', 'STALE', 'INVALID', 'NONE')
+LoadSource = enum('NONE', 'FRESH_REUSE', 'ADOPT_INFLIGHT', 'START_NEW')
+Outcome = enum('NONE', 'SUCCESS', 'FAILURE')
+CommitSource = enum('BASE', 'NEWER')
+
+GENERATIONS = [Generation.OLDER, Generation.NEWER]
+
+action Init:
+    artifact_state = ArtifactState.SUCCESS
+    artifact_freshness = Freshness.FRESH
+    committed_source = CommitSource.BASE
+
+    generation_entry = {}
+    generation_obsolete = {}
+    preflight_state = {}
+    data_state = {}
+    load_source = {}
+    outcome = {}
+
+    for g in GENERATIONS:
+        generation_entry[g] = Entry.NONE
+        generation_obsolete[g] = False
+        preflight_state[g] = PreflightState.NOT_STARTED
+        data_state[g] = DataState.NOT_STARTED
+        load_source[g] = LoadSource.NONE
+        outcome[g] = Outcome.NONE
+
+atomic action MarkArtifactStale:
+    require artifact_state == ArtifactState.SUCCESS
+    require artifact_freshness == Freshness.FRESH
+    artifact_freshness = Freshness.STALE
+
+atomic action InvalidateArtifact:
+    require artifact_state == ArtifactState.SUCCESS
+    artifact_freshness = Freshness.INVALID
+
+atomic action StartOlderPreload:
+    require generation_entry[Generation.OLDER] == Entry.NONE
+    require generation_entry[Generation.NEWER] == Entry.NONE
+    generation_entry[Generation.OLDER] = Entry.PRELOAD
+
+atomic action ResolveOlderBeforeLoadSuccess:
+    require generation_entry[Generation.OLDER] == Entry.PRELOAD
+    require preflight_state[Generation.OLDER] == PreflightState.NOT_STARTED
+    preflight_state[Generation.OLDER] = PreflightState.SUCCESS
+
+atomic action LaunchOlderLoad:
+    require generation_entry[Generation.OLDER] == Entry.PRELOAD
+    require preflight_state[Generation.OLDER] == PreflightState.SUCCESS
+    require data_state[Generation.OLDER] == DataState.NOT_STARTED
+    require artifact_freshness in [Freshness.STALE, Freshness.INVALID]
+
+    artifact_state = ArtifactState.IN_FLIGHT
+    artifact_freshness = Freshness.NONE
+    data_state[Generation.OLDER] = DataState.IN_FLIGHT
+    load_source[Generation.OLDER] = LoadSource.START_NEW
+
+atomic action StartNewerNavigation:
+    require generation_entry[Generation.NEWER] == Entry.NONE
+    generation_entry[Generation.NEWER] = Entry.NAVIGATION
+
+    if generation_entry[Generation.OLDER] != Entry.NONE:
+        generation_obsolete[Generation.OLDER] = True
+
+atomic action ResolveNewerBeforeLoadSuccess:
+    require generation_entry[Generation.NEWER] == Entry.NAVIGATION
+    require preflight_state[Generation.NEWER] == PreflightState.NOT_STARTED
+    preflight_state[Generation.NEWER] = PreflightState.SUCCESS
+
+atomic action LaunchNewerLoad:
+    require generation_entry[Generation.NEWER] == Entry.NAVIGATION
+    require preflight_state[Generation.NEWER] == PreflightState.SUCCESS
+    require data_state[Generation.NEWER] == DataState.NOT_STARTED
+
+    if artifact_state == ArtifactState.SUCCESS and artifact_freshness == Freshness.FRESH:
+        data_state[Generation.NEWER] = DataState.SUCCESS
+        load_source[Generation.NEWER] = LoadSource.FRESH_REUSE
+        return
+
+    if artifact_state == ArtifactState.IN_FLIGHT:
+        data_state[Generation.NEWER] = DataState.IN_FLIGHT
+        load_source[Generation.NEWER] = LoadSource.ADOPT_INFLIGHT
+        return
+
+    artifact_state = ArtifactState.IN_FLIGHT
+    artifact_freshness = Freshness.NONE
+    data_state[Generation.NEWER] = DataState.IN_FLIGHT
+    load_source[Generation.NEWER] = LoadSource.START_NEW
+
+atomic action CompleteArtifactSuccess:
+    require artifact_state == ArtifactState.IN_FLIGHT
+    artifact_state = ArtifactState.SUCCESS
+    artifact_freshness = Freshness.FRESH
+
+    for g in GENERATIONS:
+        if data_state[g] == DataState.IN_FLIGHT:
+            data_state[g] = DataState.SUCCESS
+
+atomic action CompleteArtifactFailure:
+    require artifact_state == ArtifactState.IN_FLIGHT
+    artifact_state = ArtifactState.NON_REUSABLE_FAILURE
+    artifact_freshness = Freshness.NONE
+
+    for g in GENERATIONS:
+        if data_state[g] == DataState.IN_FLIGHT:
+            data_state[g] = DataState.FAILURE
+
+atomic action FinalizeNewerSuccess:
+    require generation_entry[Generation.NEWER] == Entry.NAVIGATION
+    require data_state[Generation.NEWER] == DataState.SUCCESS
+    require outcome[Generation.NEWER] == Outcome.NONE
+    outcome[Generation.NEWER] = Outcome.SUCCESS
+
+atomic action FinalizeNewerFailure:
+    require generation_entry[Generation.NEWER] == Entry.NAVIGATION
+    require data_state[Generation.NEWER] == DataState.FAILURE
+    require outcome[Generation.NEWER] == Outcome.NONE
+    outcome[Generation.NEWER] = Outcome.FAILURE
+
+atomic action CommitNewer:
+    require outcome[Generation.NEWER] == Outcome.SUCCESS
+    committed_source = CommitSource.NEWER
+
+always assertion OnlyNewerCommits:
+    return committed_source in [CommitSource.BASE, CommitSource.NEWER]
+
+always assertion NavigationLoadRequiresBeforeLoadSuccess:
+    if data_state[Generation.NEWER] != DataState.NOT_STARTED:
+        return preflight_state[Generation.NEWER] == PreflightState.SUCCESS
+    return True
+
+always assertion FreshReuseProducesImmediateSuccess:
+    if load_source[Generation.NEWER] != LoadSource.FRESH_REUSE:
+        return True
+    return data_state[Generation.NEWER] == DataState.SUCCESS
+
+always assertion AdoptedInflightNeverCommitsBeforeArtifactResolves:
+    if load_source[Generation.NEWER] != LoadSource.ADOPT_INFLIGHT:
+        return True
+    if outcome[Generation.NEWER] == Outcome.SUCCESS and artifact_state != ArtifactState.SUCCESS:
+        return False
+    return True
+
+always assertion FailureAfterFreshReuseDoesNotPoisonCommittedSuccess:
+    if artifact_state != ArtifactState.NON_REUSABLE_FAILURE:
+        return True
+    if load_source[Generation.NEWER] != LoadSource.FRESH_REUSE:
+        return True
+    return data_state[Generation.NEWER] == DataState.SUCCESS
+
+always assertion AdoptedInflightFailurePreventsCommit:
+    if load_source[Generation.NEWER] != LoadSource.ADOPT_INFLIGHT:
+        return True
+    if data_state[Generation.NEWER] != DataState.FAILURE:
+        return True
+    return committed_source != CommitSource.NEWER
+
+always assertion CommitRequiresNewerSuccess:
+    if committed_source != CommitSource.NEWER:
+        return True
+    return outcome[Generation.NEWER] == Outcome.SUCCESS and data_state[Generation.NEWER] == DataState.SUCCESS

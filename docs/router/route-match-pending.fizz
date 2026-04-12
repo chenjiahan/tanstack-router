@@ -1,0 +1,98 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 10
+  max_concurrent_actions: 1
+---
+
+# Phase 2 pending-timing-focused model.
+#
+# This spec models the observable timing contract of pending UI:
+# - pending is not shown before the optimistic delay threshold
+# - if loading finishes before pending shows, pending never flashes
+# - once pending becomes visible, it remains visible until the minimum pending
+#   duration elapses, even if the underlying load completes earlier
+
+RenderGate = enum('IDLE', 'LOADING', 'PENDING', 'READY')
+
+action Init:
+    load_started = False
+    load_completed = False
+    pending_threshold_elapsed = False
+    pending_visible = False
+    pending_min_elapsed = False
+    render_gate = RenderGate.IDLE
+
+atomic action StartLoad:
+    require load_started == False
+    load_started = True
+    render_gate = RenderGate.LOADING
+
+atomic action ElapsePendingThreshold:
+    require load_started
+    require load_completed == False
+    require pending_visible == False
+
+    pending_threshold_elapsed = True
+    pending_visible = True
+    render_gate = RenderGate.PENDING
+
+atomic action CompleteLoad:
+    require load_started
+    require load_completed == False
+
+    load_completed = True
+
+    if pending_visible == False:
+        render_gate = RenderGate.READY
+        return
+
+    if pending_min_elapsed:
+        render_gate = RenderGate.READY
+    else:
+        render_gate = RenderGate.PENDING
+
+atomic action ElapsePendingMin:
+    require pending_visible
+    require pending_min_elapsed == False
+
+    pending_min_elapsed = True
+
+    if load_completed:
+        render_gate = RenderGate.READY
+    else:
+        render_gate = RenderGate.PENDING
+
+always assertion PendingNotVisibleBeforeThreshold:
+    if pending_visible == False:
+        return render_gate != RenderGate.PENDING
+    return True
+
+always assertion FastLoadNeverShowsPending:
+    if load_completed == False:
+        return True
+    if pending_visible:
+        return True
+    return render_gate == RenderGate.READY
+
+always assertion PendingVisibleUntilMinimumExpires:
+    if pending_visible == False:
+        return True
+    if pending_min_elapsed:
+        return True
+    return render_gate == RenderGate.PENDING
+
+always assertion ReadyRequiresCompletedLoad:
+    if render_gate != RenderGate.READY:
+        return True
+    return load_completed
+
+always assertion MinimumOnlyStartsAfterPendingVisible:
+    if pending_min_elapsed == False:
+        return True
+    return pending_visible
+
+always assertion NoReturnToLoadingAfterPending:
+    if pending_visible == False:
+        return True
+    return render_gate != RenderGate.LOADING

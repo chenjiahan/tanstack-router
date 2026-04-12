@@ -1,0 +1,283 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 16
+  max_concurrent_actions: 1
+---
+
+# Phase 2 failure-precedence and boundary-ownership model.
+
+Presence = enum('ROOT', 'PARENT', 'LEAF')
+PreflightState = enum('NOT_STARTED', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+LoaderState = enum('NOT_STARTED', 'IN_FLIGHT', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+Outcome = enum('NONE', 'SUCCESS', 'REDIRECT', 'NOT_FOUND', 'ERROR')
+
+PRESENCES = [Presence.ROOT, Presence.PARENT, Presence.LEAF]
+
+action Init:
+    serial_cursor = Presence.ROOT
+    loaders_launched = False
+    root_shell_preserved = False
+
+    provisional_outcome = Outcome.NONE
+    provisional_source = None
+
+    final_outcome = Outcome.NONE
+    final_source = None
+    final_boundary = None
+
+    preflight_state = {}
+    loader_state = {}
+
+    for p in PRESENCES:
+        preflight_state[p] = PreflightState.NOT_STARTED
+        loader_state[p] = LoaderState.NOT_STARTED
+
+atomic action ResolveBeforeLoadSuccess:
+    require serial_cursor != None
+    p = serial_cursor
+    preflight_state[p] = PreflightState.SUCCESS
+
+    if p == Presence.ROOT:
+        serial_cursor = Presence.PARENT
+    elif p == Presence.PARENT:
+        serial_cursor = Presence.LEAF
+    else:
+        serial_cursor = None
+
+atomic action ResolveBeforeLoadRedirect:
+    require serial_cursor != None
+    p = serial_cursor
+    preflight_state[p] = PreflightState.REDIRECT
+    provisional_outcome = Outcome.REDIRECT
+    provisional_source = p
+    serial_cursor = None
+
+atomic action ResolveBeforeLoadNotFound:
+    require serial_cursor != None
+    p = serial_cursor
+    preflight_state[p] = PreflightState.NOT_FOUND
+    provisional_outcome = Outcome.NOT_FOUND
+    provisional_source = p
+    serial_cursor = None
+
+atomic action ResolveBeforeLoadError:
+    require serial_cursor != None
+    p = serial_cursor
+    preflight_state[p] = PreflightState.ERROR
+    provisional_outcome = Outcome.ERROR
+    provisional_source = p
+    serial_cursor = None
+
+atomic action LaunchLoaders:
+    require serial_cursor == None
+    require loaders_launched == False
+    require provisional_outcome != Outcome.REDIRECT
+
+    load_root = False
+    load_parent = False
+    load_leaf = False
+
+    if provisional_outcome == Outcome.NONE:
+        load_root = True
+        load_parent = True
+        load_leaf = True
+    elif provisional_outcome == Outcome.NOT_FOUND:
+        load_root = True
+        if provisional_source != Presence.ROOT:
+            load_parent = True
+    elif provisional_outcome == Outcome.ERROR:
+        if provisional_source == Presence.PARENT or provisional_source == Presence.LEAF:
+            load_root = True
+        if provisional_source == Presence.LEAF:
+            load_parent = True
+
+    if load_root:
+        loader_state[Presence.ROOT] = LoaderState.IN_FLIGHT
+    if load_parent:
+        loader_state[Presence.PARENT] = LoaderState.IN_FLIGHT
+    if load_leaf:
+        loader_state[Presence.LEAF] = LoaderState.IN_FLIGHT
+
+    loaders_launched = True
+
+atomic action ResolveLoaderSuccess:
+    p = oneof PRESENCES
+    require loader_state[p] == LoaderState.IN_FLIGHT
+    loader_state[p] = LoaderState.SUCCESS
+
+atomic action ResolveLoaderRedirect:
+    p = oneof PRESENCES
+    require loader_state[p] == LoaderState.IN_FLIGHT
+    loader_state[p] = LoaderState.REDIRECT
+
+atomic action ResolveLoaderNotFound:
+    p = oneof PRESENCES
+    require loader_state[p] == LoaderState.IN_FLIGHT
+    loader_state[p] = LoaderState.NOT_FOUND
+
+atomic action ResolveLoaderError:
+    p = oneof PRESENCES
+    require loader_state[p] == LoaderState.IN_FLIGHT
+    loader_state[p] = LoaderState.ERROR
+
+atomic action Finalize:
+    require final_outcome == Outcome.NONE
+    require serial_cursor == None
+    require provisional_outcome == Outcome.REDIRECT or loaders_launched
+    require len([p for p in PRESENCES if loader_state[p] == LoaderState.IN_FLIGHT]) == 0
+
+    redirect_source = None
+    loader_error_source = None
+    loader_notfound_source = None
+    serial_notfound_source = None
+    serial_error_source = None
+
+    for p in PRESENCES:
+        if redirect_source == None and (preflight_state[p] == PreflightState.REDIRECT or loader_state[p] == LoaderState.REDIRECT):
+            redirect_source = p
+        if loader_error_source == None and loader_state[p] == LoaderState.ERROR:
+            loader_error_source = p
+        if loader_notfound_source == None and loader_state[p] == LoaderState.NOT_FOUND:
+            loader_notfound_source = p
+        if serial_notfound_source == None and preflight_state[p] == PreflightState.NOT_FOUND:
+            serial_notfound_source = p
+        if serial_error_source == None and preflight_state[p] == PreflightState.ERROR:
+            serial_error_source = p
+
+    if redirect_source != None:
+        final_outcome = Outcome.REDIRECT
+        final_source = redirect_source
+        return
+
+    if loader_error_source != None:
+        final_outcome = Outcome.ERROR
+        final_source = loader_error_source
+        if loader_error_source == Presence.LEAF:
+            final_boundary = Presence.PARENT
+        else:
+            final_boundary = loader_error_source
+        return
+
+    if loader_notfound_source != None:
+        final_outcome = Outcome.NOT_FOUND
+        final_source = loader_notfound_source
+        if loader_notfound_source == Presence.ROOT:
+            final_boundary = Presence.ROOT
+            root_shell_preserved = True
+        else:
+            final_boundary = Presence.PARENT
+        return
+
+    if serial_notfound_source != None:
+        final_outcome = Outcome.NOT_FOUND
+        final_source = serial_notfound_source
+        if serial_notfound_source == Presence.ROOT:
+            final_boundary = Presence.ROOT
+            root_shell_preserved = True
+        else:
+            final_boundary = Presence.PARENT
+        return
+
+    if serial_error_source != None:
+        final_outcome = Outcome.ERROR
+        final_source = serial_error_source
+        if serial_error_source == Presence.LEAF:
+            final_boundary = Presence.PARENT
+        else:
+            final_boundary = serial_error_source
+        return
+
+    final_outcome = Outcome.SUCCESS
+
+always assertion BeforeLoadIsSerial:
+    if preflight_state[Presence.PARENT] != PreflightState.NOT_STARTED and preflight_state[Presence.ROOT] != PreflightState.SUCCESS:
+        return False
+    if preflight_state[Presence.LEAF] != PreflightState.NOT_STARTED and preflight_state[Presence.PARENT] != PreflightState.SUCCESS:
+        return False
+    return True
+
+always assertion LeafBeforeLoadNotFoundPreservesAncestorLoaders:
+    if preflight_state[Presence.LEAF] != PreflightState.NOT_FOUND:
+        return True
+    if loaders_launched == False:
+        return True
+    if loader_state[Presence.ROOT] == LoaderState.NOT_STARTED:
+        return False
+    if loader_state[Presence.PARENT] == LoaderState.NOT_STARTED:
+        return False
+    return loader_state[Presence.LEAF] == LoaderState.NOT_STARTED
+
+always assertion ParentBeforeLoadErrorSkipsOwnAndChildLoader:
+    if preflight_state[Presence.PARENT] != PreflightState.ERROR:
+        return True
+    if loaders_launched == False:
+        return True
+    if loader_state[Presence.ROOT] == LoaderState.NOT_STARTED:
+        return False
+    if loader_state[Presence.PARENT] != LoaderState.NOT_STARTED:
+        return False
+    return loader_state[Presence.LEAF] == LoaderState.NOT_STARTED
+
+always assertion RedirectDominatesFinalOutcome:
+    has_redirect = False
+    for p in PRESENCES:
+        if preflight_state[p] == PreflightState.REDIRECT or loader_state[p] == LoaderState.REDIRECT:
+            has_redirect = True
+    if has_redirect == False:
+        return True
+    if final_outcome == Outcome.NONE:
+        return True
+    return final_outcome == Outcome.REDIRECT
+
+always assertion LoaderErrorBeatsSerialNotFound:
+    has_loader_error = False
+    has_serial_notfound = False
+    has_redirect = False
+    for p in PRESENCES:
+        if loader_state[p] == LoaderState.ERROR:
+            has_loader_error = True
+        if preflight_state[p] == PreflightState.NOT_FOUND:
+            has_serial_notfound = True
+        if preflight_state[p] == PreflightState.REDIRECT or loader_state[p] == LoaderState.REDIRECT:
+            has_redirect = True
+    if has_loader_error == False or has_serial_notfound == False or has_redirect:
+        return True
+    if final_outcome == Outcome.NONE:
+        return True
+    return final_outcome == Outcome.ERROR
+
+always assertion LoaderNotFoundBeatsSerialError:
+    has_loader_notfound = False
+    has_serial_error = False
+    has_redirect = False
+    has_loader_error = False
+    for p in PRESENCES:
+        if loader_state[p] == LoaderState.NOT_FOUND:
+            has_loader_notfound = True
+        if preflight_state[p] == PreflightState.ERROR:
+            has_serial_error = True
+        if preflight_state[p] == PreflightState.REDIRECT or loader_state[p] == LoaderState.REDIRECT:
+            has_redirect = True
+        if loader_state[p] == LoaderState.ERROR:
+            has_loader_error = True
+    if has_loader_notfound == False or has_serial_error == False or has_redirect or has_loader_error:
+        return True
+    if final_outcome == Outcome.NONE:
+        return True
+    return final_outcome == Outcome.NOT_FOUND
+
+always assertion LeafErrorUsesParentBoundary:
+    if final_outcome != Outcome.ERROR or final_source != Presence.LEAF:
+        return True
+    return final_boundary == Presence.PARENT
+
+always assertion LeafNotFoundUsesParentBoundary:
+    if final_outcome != Outcome.NOT_FOUND or final_source != Presence.LEAF:
+        return True
+    return final_boundary == Presence.PARENT
+
+always assertion RootNotFoundPreservesShell:
+    if final_outcome != Outcome.NOT_FOUND or final_boundary != Presence.ROOT:
+        return True
+    return root_shell_preserved

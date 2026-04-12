@@ -1,0 +1,110 @@
+---
+deadlock_detection: false
+options:
+  max_actions: 12
+  max_concurrent_actions: 1
+---
+
+# Phase 2 background-reload-focused model.
+#
+# This spec isolates one semantic guarantee:
+# while stale background reload work is in flight, the currently committed view
+# remains stable, and a late background completion cannot clobber a newer
+# committed navigation.
+
+ArtifactState = enum('SUCCESS', 'IN_FLIGHT', 'FAILED')
+Freshness = enum('STALE', 'INVALID', 'NONE', 'FRESH')
+BackgroundState = enum('NONE', 'IN_FLIGHT', 'SUCCESS', 'FAILURE')
+NavigationState = enum('NONE', 'IN_FLIGHT', 'SUCCESS', 'FAILURE')
+CommittedView = enum('BASE', 'NEWER')
+
+action Init:
+    committed_view = CommittedView.BASE
+    committed_renderable = True
+
+    artifact_state = ArtifactState.SUCCESS
+    artifact_freshness = Freshness.STALE
+
+    background_state = BackgroundState.NONE
+    background_obsolete = False
+
+    navigation_state = NavigationState.NONE
+
+atomic action MarkArtifactInvalid:
+    require committed_view == CommittedView.BASE
+    require artifact_state == ArtifactState.SUCCESS
+    artifact_freshness = Freshness.INVALID
+
+atomic action StartBackgroundReload:
+    require committed_view == CommittedView.BASE
+    require background_state == BackgroundState.NONE
+    require artifact_state == ArtifactState.SUCCESS
+    require artifact_freshness in [Freshness.STALE, Freshness.INVALID]
+
+    background_state = BackgroundState.IN_FLIGHT
+    artifact_state = ArtifactState.IN_FLIGHT
+    artifact_freshness = Freshness.NONE
+
+atomic action StartNewerNavigation:
+    require navigation_state == NavigationState.NONE
+    navigation_state = NavigationState.IN_FLIGHT
+    background_obsolete = background_state == BackgroundState.IN_FLIGHT
+
+atomic action CompleteNewerNavigationSuccess:
+    require navigation_state == NavigationState.IN_FLIGHT
+    navigation_state = NavigationState.SUCCESS
+    committed_view = CommittedView.NEWER
+    committed_renderable = True
+
+atomic action CompleteNewerNavigationFailure:
+    require navigation_state == NavigationState.IN_FLIGHT
+    navigation_state = NavigationState.FAILURE
+    committed_renderable = True
+
+atomic action CompleteBackgroundSuccess:
+    require background_state == BackgroundState.IN_FLIGHT
+    background_state = BackgroundState.SUCCESS
+    artifact_state = ArtifactState.SUCCESS
+    artifact_freshness = Freshness.FRESH
+
+atomic action CompleteBackgroundFailure:
+    require background_state == BackgroundState.IN_FLIGHT
+    background_state = BackgroundState.FAILURE
+    artifact_state = ArtifactState.FAILED
+    artifact_freshness = Freshness.NONE
+
+always assertion BaseRemainsRenderableDuringBackgroundReload:
+    if committed_view != CommittedView.BASE:
+        return True
+    if background_state != BackgroundState.IN_FLIGHT:
+        return True
+    return committed_renderable
+
+always assertion BackgroundCompletionDoesNotChangeCommittedViewByItself:
+    if background_state not in [BackgroundState.SUCCESS, BackgroundState.FAILURE]:
+        return True
+    if navigation_state == NavigationState.SUCCESS:
+        return committed_view == CommittedView.NEWER
+    return committed_view == CommittedView.BASE
+
+always assertion ObsoleteBackgroundCannotClobberNewerCommit:
+    if background_obsolete == False:
+        return True
+    if navigation_state != NavigationState.SUCCESS:
+        return True
+    return committed_view == CommittedView.NEWER
+
+always assertion BackgroundFailureDoesNotRenderErrorOnCommittedView:
+    if background_state != BackgroundState.FAILURE:
+        return True
+    return committed_renderable
+
+always assertion NewerCommitRequiresNavigationSuccess:
+    if committed_view != CommittedView.NEWER:
+        return True
+    return navigation_state == NavigationState.SUCCESS
+
+always assertion InvalidOrStaleStartsBackgroundOnlyFromCommittedBase:
+    if background_state == BackgroundState.NONE:
+        return True
+    return committed_view in [CommittedView.BASE, CommittedView.NEWER]

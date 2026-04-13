@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776046329462,
+  "lastUpdate": 1776107594362,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -10861,6 +10861,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/96ac2d8ed378340d63b88afeec3633e56e29b5f8"
         },
         "date": 1776046328383,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89427,
+            "unit": "bytes",
+            "extra": "raw=281173; brotli=77797"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92769,
+            "unit": "bytes",
+            "extra": "raw=292512; brotli=80607"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36356,
+            "unit": "bytes",
+            "extra": "raw=109143; brotli=32641"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40938,
+            "unit": "bytes",
+            "extra": "raw=122957; brotli=36793"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54575,
+            "unit": "bytes",
+            "extra": "raw=155638; brotli=49009"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59587,
+            "unit": "bytes",
+            "extra": "raw=171429; brotli=53341"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104175,
+            "unit": "bytes",
+            "extra": "raw=330043; brotli=90046"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107695,
+            "unit": "bytes",
+            "extra": "raw=340622; brotli=93019"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50693,
+            "unit": "bytes",
+            "extra": "raw=156051; brotli=44672"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56348,
+            "unit": "bytes",
+            "extra": "raw=172643; brotli=49576"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "328d7e5ebc6b8074242a07d68ccafafb83e37a0e",
+          "message": "fix(router-generator): normalize virtual physical subtree paths (#7169)\n\nCo-authored-by: schiller-manuel <6340397+schiller-manuel@users.noreply.github.com>\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>",
+          "timestamp": "2026-04-13T21:10:40+02:00",
+          "tree_id": "c61d46f336738780b7b328266d740e88a0f0f985",
+          "url": "https://github.com/TanStack/router/commit/328d7e5ebc6b8074242a07d68ccafafb83e37a0e"
+        },
+        "date": 1776107592694,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

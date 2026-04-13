@@ -8,7 +8,7 @@ import {
 } from '@tanstack/solid-router'
 import { SolidQueryDevtools } from '@tanstack/solid-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/solid-router-devtools'
-import { HydrationScript } from '@solidjs/web'
+import { HydrationScript, isServer } from '@solidjs/web'
 import type * as Solid from 'solid-js'
 import type { QueryClient } from '@tanstack/solid-query'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
@@ -139,7 +139,7 @@ function RootDocument({ children }: { children: Solid.JSX.Element }) {
         <hr />
         {children}
         <TanStackRouterDevtools position="bottom-right" />
-        <SolidQueryDevtools buttonPosition="bottom-left" />
+        {!isServer && <SolidQueryDevtools buttonPosition="bottom-left" />}
         <Scripts />
       </body>
     </html>

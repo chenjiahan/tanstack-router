@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776107594362,
+  "lastUpdate": 1776112693432,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -10945,6 +10945,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/328d7e5ebc6b8074242a07d68ccafafb83e37a0e"
         },
         "date": 1776107592694,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89427,
+            "unit": "bytes",
+            "extra": "raw=281173; brotli=77797"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92769,
+            "unit": "bytes",
+            "extra": "raw=292512; brotli=80607"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36356,
+            "unit": "bytes",
+            "extra": "raw=109143; brotli=32641"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40938,
+            "unit": "bytes",
+            "extra": "raw=122957; brotli=36793"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54575,
+            "unit": "bytes",
+            "extra": "raw=155638; brotli=49009"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59587,
+            "unit": "bytes",
+            "extra": "raw=171429; brotli=53341"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104175,
+            "unit": "bytes",
+            "extra": "raw=330043; brotli=90046"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107695,
+            "unit": "bytes",
+            "extra": "raw=340622; brotli=93019"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50693,
+            "unit": "bytes",
+            "extra": "raw=156051; brotli=44672"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56348,
+            "unit": "bytes",
+            "extra": "raw=172643; brotli=49576"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manuel.schiller@caligano.de",
+            "name": "Manuel Schiller",
+            "username": "schiller-manuel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a581680a27530469751b8ab419ada9ce66da4ffe",
+          "message": "fix: unify virtual module handling for Start Vite plugins (#7178)\n\nCo-authored-by: coderabbitai[bot] <136622811+coderabbitai[bot]@users.noreply.github.com>\nCo-authored-by: CodeRabbit <noreply@coderabbit.ai>\nCo-authored-by: schiller-manuel <schiller-manuel@users.noreply.github.com>\nCo-authored-by: autofix-ci[bot] <114827586+autofix-ci[bot]@users.noreply.github.com>\nCo-authored-by: nx-cloud[bot] <71083854+nx-cloud[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-13T22:35:58+02:00",
+          "tree_id": "582d6f176cbebdff6479a1af830f2cc00ad97f26",
+          "url": "https://github.com/TanStack/router/commit/a581680a27530469751b8ab419ada9ce66da4ffe"
+        },
+        "date": 1776112692055,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

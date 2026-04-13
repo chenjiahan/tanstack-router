@@ -896,6 +896,8 @@ These files should be treated as legacy reference material, not as the skeleton 
 
 Do not start by reshuffling the current code.
 
+Never access anything through router.state or useRouterState for internal adapter/runtime work, these are low performance public API only.
+
 Start by implementing explicit semantic state in router-core that matches the model suite. Then make React consume that state. Only after the semantic core is stable should you align the other adapters and remove obsolete legacy machinery.
 
 If you find yourself preserving the broad structure of `load-matches.ts` or reproducing the current many-branch `Match.tsx` control flow, stop and reset toward a cleaner first-principles design.

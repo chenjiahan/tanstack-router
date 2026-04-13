@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776122340520,
+  "lastUpdate": 1776123351340,
   "repoUrl": "https://github.com/TanStack/router",
   "entries": {
     "Benchmark": [
@@ -11281,6 +11281,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/TanStack/router/commit/16f6892d6b7ceadf606677c5a40e743f29163aa6"
         },
         "date": 1776122339337,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "react-router.minimal",
+            "value": 89442,
+            "unit": "bytes",
+            "extra": "raw=281190; brotli=77791"
+          },
+          {
+            "name": "react-router.full",
+            "value": 92775,
+            "unit": "bytes",
+            "extra": "raw=292529; brotli=80646"
+          },
+          {
+            "name": "solid-router.minimal",
+            "value": 36362,
+            "unit": "bytes",
+            "extra": "raw=109159; brotli=32671"
+          },
+          {
+            "name": "solid-router.full",
+            "value": 40945,
+            "unit": "bytes",
+            "extra": "raw=122973; brotli=36797"
+          },
+          {
+            "name": "vue-router.minimal",
+            "value": 54582,
+            "unit": "bytes",
+            "extra": "raw=155655; brotli=49026"
+          },
+          {
+            "name": "vue-router.full",
+            "value": 59593,
+            "unit": "bytes",
+            "extra": "raw=171446; brotli=53314"
+          },
+          {
+            "name": "react-start.minimal",
+            "value": 104185,
+            "unit": "bytes",
+            "extra": "raw=330060; brotli=90090"
+          },
+          {
+            "name": "react-start.full",
+            "value": 107704,
+            "unit": "bytes",
+            "extra": "raw=340639; brotli=93152"
+          },
+          {
+            "name": "solid-start.minimal",
+            "value": 50706,
+            "unit": "bytes",
+            "extra": "raw=156067; brotli=44707"
+          },
+          {
+            "name": "solid-start.full",
+            "value": 56356,
+            "unit": "bytes",
+            "extra": "raw=172660; brotli=49607"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "108333654+CodingCossack@users.noreply.github.com",
+            "name": "Coding Cossack",
+            "username": "CodingCossack"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8caa20223e876129afa3ee51881fb3aefe5dc065",
+          "message": "Add a React Start server-components skill (#7181)\n\nCo-authored-by: autofix-ci[bot] <114827586+autofix-ci[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-14T01:33:37+02:00",
+          "tree_id": "c3e71b6c0d3a7631f4ebb76b27fbc86b67919365",
+          "url": "https://github.com/TanStack/router/commit/8caa20223e876129afa3ee51881fb3aefe5dc065"
+        },
+        "date": 1776123350182,
         "tool": "customSmallerIsBetter",
         "benches": [
           {

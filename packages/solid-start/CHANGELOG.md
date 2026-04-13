@@ -1,5 +1,16 @@
 # @tanstack/solid-start
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- fix: pin solid 2 beta.6 due to server range with -experimental tag ([#7171](https://github.com/TanStack/router/pull/7171))
+
+- Updated dependencies [[`85eb16c`](https://github.com/TanStack/router/commit/85eb16c6ade53e7cd704b4a1f294509e37630435)]:
+  - @tanstack/solid-start-client@2.0.0-beta.13
+  - @tanstack/solid-start-server@2.0.0-beta.13
+  - @tanstack/solid-router@2.0.0-beta.13
+
 ## 2.0.0-beta.13
 
 ### Patch Changes

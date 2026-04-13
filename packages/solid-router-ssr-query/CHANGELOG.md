@@ -1,5 +1,11 @@
 # @tanstack/solid-router-ssr-query
 
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- fix: pin solid 2 beta.6 due to server range with -experimental tag ([#7171](https://github.com/TanStack/router/pull/7171))
+
 ## 2.0.0-beta.14
 
 ### Patch Changes

@@ -298,11 +298,9 @@ If a failing test is about observable behavior, fix the implementation.
 
 If a failing test is about deleted architecture, rewrite the test.
 
-### Exact update counts are fragile; upper bounds are better
+### Exact update counts may break, this is OK.
 
-Store-update count tests can still be useful, but exact-count assertions are brittle across a rewrite like phase 3.
-
-If update counts go down, that is usually a good outcome, not a regression.
+Store-update count tests can still be useful, but exact-count assertions are brittle across a rewrite like phase 3. If update counts go down, that is usually a good outcome, not a regression.
 
 ### Practical anti-patterns to avoid immediately
 
@@ -465,7 +463,7 @@ In particular, these tests caught real observable regressions and should be trea
 - `packages/react-router/tests/store-updates-during-navigation.test.tsx`
   Helped distinguish good reductions in update count from brittle exact-count assertions.
 
-Phase 3 should run full `router-core` and `react-router` unit suites early and repeatedly, not only after the rewrite feels complete.
+Phase 3 should run full `router-core` and `react-router` unit suites when it gets close to finishing phase 3 for these packages, to obtain information. But for a major rewrite like this it is expected that during some segments of work most tests will be broken. Do not overly focus on fixing tests until approaching completion.
 
 ### Preserve observable behavior even when internal phase distinctions change
 

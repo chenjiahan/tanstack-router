@@ -7,7 +7,7 @@
   "tui": {
     "enabled": false
   },
-  "bust": "pre-e2e-test",
+  "bust": "pre-e2e-test-pre-sharding",
   "namedInputs": {
     "sharedGlobals": [
       "{workspaceRoot}/.nvmrc",

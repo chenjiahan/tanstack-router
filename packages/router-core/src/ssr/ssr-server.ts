@@ -2,6 +2,7 @@ import { crossSerializeStream, getCrossReferenceHeader } from 'seroval'
 import { invariant } from '../invariant'
 import { decodePath } from '../utils'
 import { createLRUCache } from '../lru-cache'
+import { rootRouteId } from '../root'
 import minifiedTsrBootStrapScript from './tsrScript?script-string'
 import { GLOBAL_TSR, TSR_SCRIPT_BARRIER_ID } from './constants'
 import { dehydrateSsrMatchId } from './ssr-match-id'
@@ -171,12 +172,33 @@ function getManifestCache(manifest: Manifest): ManifestLRU {
 export function attachRouterServerSsrUtils({
   router,
   manifest,
+  getRequestAssets,
+  includeUnmatchedRouteAssets = true,
 }: {
   router: AnyRouter
   manifest: Manifest | undefined
+  getRequestAssets?: () => Array<RouterManagedTag> | undefined
+  includeUnmatchedRouteAssets?: boolean
 }) {
   router.ssr = {
-    manifest,
+    get manifest() {
+      const requestAssets = getRequestAssets?.()
+      if (!requestAssets?.length) return manifest
+      // Merge request-scoped assets into root route without mutating cached manifest
+      return {
+        ...manifest,
+        routes: {
+          ...manifest?.routes,
+          [rootRouteId]: {
+            ...manifest?.routes?.[rootRouteId],
+            assets: [
+              ...requestAssets,
+              ...(manifest?.routes?.[rootRouteId]?.assets ?? []),
+            ],
+          },
+        },
+      }
+    },
   }
   let _dehydrated = false
   let _serializationFinished = false
@@ -200,7 +222,7 @@ export function attachRouterServerSsrUtils({
       const html = `<script${router.options.ssr?.nonce ? ` nonce='${router.options.ssr.nonce}'` : ''}>${script}</script>`
       router.serverSsr!.injectHtml(html)
     },
-    dehydrate: async () => {
+    dehydrate: async (opts?: { requestAssets?: Array<RouterManagedTag> }) => {
       if (_dehydrated) {
         if (process.env.NODE_ENV !== 'production') {
           throw new Error('Invariant failed: router is already dehydrated!')
@@ -208,7 +230,7 @@ export function attachRouterServerSsrUtils({
 
         invariant()
       }
-      let matchesToDehydrate = router.stores.activeMatchesSnapshot.state
+      let matchesToDehydrate = router.stores.matches.get()
       if (router.isShell()) {
         // In SPA mode we only want to dehydrate the root match
         matchesToDehydrate = matchesToDehydrate.slice(0, 1)
@@ -216,12 +238,14 @@ export function attachRouterServerSsrUtils({
       const matches = matchesToDehydrate.map(dehydrateMatch)
 
       let manifestToDehydrate: Manifest | undefined = undefined
-      // For currently matched routes, send full manifest (preloads + assets)
-      // For all other routes, only send assets (no preloads as they are handled via dynamic imports)
+      // For currently matched routes, send full manifest (preloads + assets).
+      // For unmatched routes, include assets only when includeUnmatchedRouteAssets
+      // is true; otherwise omit them entirely. Preloads for unmatched routes are
+      // still excluded because they are handled via dynamic imports.
       if (manifest) {
         // Prod-only caching; in dev manifests may be replaced/updated (HMR)
         const currentRouteIdsList = matchesToDehydrate.map((m) => m.routeId)
-        const manifestCacheKey = currentRouteIdsList.join('\0')
+        const manifestCacheKey = `${currentRouteIdsList.join('\0')}\0includeUnmatchedRouteAssets=${includeUnmatchedRouteAssets}`
 
         let filteredRoutes: FilteredRoutes | undefined
 
@@ -238,6 +262,7 @@ export function attachRouterServerSsrUtils({
             if (currentRouteIds.has(routeId)) {
               nextFilteredRoutes[routeId] = routeManifest
             } else if (
+              includeUnmatchedRouteAssets &&
               routeManifest.assets &&
               routeManifest.assets.length > 0
             ) {
@@ -256,6 +281,15 @@ export function attachRouterServerSsrUtils({
 
         manifestToDehydrate = {
           routes: filteredRoutes,
+        }
+
+        // Merge request-scoped assets into root route (without mutating cached manifest)
+        if (opts?.requestAssets?.length) {
+          const existingRoot = manifestToDehydrate.routes[rootRouteId]
+          manifestToDehydrate.routes[rootRouteId] = {
+            ...existingRoot,
+            assets: [...opts.requestAssets, ...(existingRoot?.assets ?? [])],
+          }
         }
       }
       const dehydratedRouter: DehydratedRouter = {
@@ -305,16 +339,19 @@ export function attachRouterServerSsrUtils({
           }
           scriptBuffer.enqueue(serialized)
         },
+        onError: (err: unknown) => {
+          console.error('Serialization error:', err)
+          if (err && (err as any).stack) {
+            console.error((err as any).stack)
+          }
+          signalSerializationComplete()
+        },
         scopeId: SCOPE_ID,
         onDone: () => {
           scriptBuffer.enqueue(GLOBAL_TSR + '.e()')
           // Flush all pending scripts synchronously before signaling completion
           // This ensures all scripts are injected before onSerializationFinished is emitted
           scriptBuffer.flush()
-          signalSerializationComplete()
-        },
-        onError: (err) => {
-          console.error('Serialization error:', err)
           signalSerializationComplete()
         },
       })

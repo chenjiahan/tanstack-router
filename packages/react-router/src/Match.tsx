@@ -1,3 +1,5 @@
+'use client'
+
 import * as React from 'react'
 import { useStore } from '@tanstack/react-store'
 import {
@@ -17,11 +19,8 @@ import { SafeFragment } from './SafeFragment'
 import { renderRouteNotFound } from './renderRouteNotFound'
 import { ScrollRestoration } from './scroll-restoration'
 import { ClientOnly } from './ClientOnly'
-import type {
-  AnyRoute,
-  ParsedLocation,
-  RootRouteOptions,
-} from '@tanstack/router-core'
+import { useLayoutEffect } from './utils'
+import type { AnyRoute, RootRouteOptions } from '@tanstack/router-core'
 
 export const Match = React.memo(function MatchImpl({
   matchId,
@@ -31,7 +30,7 @@ export const Match = React.memo(function MatchImpl({
   const router = useRouter()
 
   if (isServer ?? router.isServer) {
-    const match = router.stores.activeMatchStoresById.get(matchId)?.state
+    const match = router.stores.matchStores.get(matchId)?.get()
     if (!match) {
       if (process.env.NODE_ENV !== 'production') {
         throw new Error(
@@ -50,7 +49,7 @@ export const Match = React.memo(function MatchImpl({
       <MatchView
         router={router}
         matchId={matchId}
-        resetKey={router.stores.loadedAt.state}
+        resetKey={router.stores.loadedAt.get()}
         matchState={{
           routeId,
           ssr: match.ssr,
@@ -65,7 +64,7 @@ export const Match = React.memo(function MatchImpl({
   // The matchId prop is stable for this component's lifetime (set by Outlet),
   // and reconcileMatchPool reuses stores for the same matchId.
 
-  const matchStore = router.stores.activeMatchStoresById.get(matchId)
+  const matchStore = router.stores.matchStores.get(matchId)
   if (!matchStore) {
     if (process.env.NODE_ENV !== 'production') {
       throw new Error(
@@ -170,7 +169,10 @@ function MatchView({
             errorComponent={routeErrorComponent || ErrorComponent}
             onCatch={(error, errorInfo) => {
               // Forward not found errors (we don't want to show the error component for these)
-              if (isNotFound(error)) throw error
+              if (isNotFound(error)) {
+                error.routeId ??= matchState.routeId as any
+                throw error
+              }
               if (process.env.NODE_ENV !== 'production') {
                 console.warn(`Warning: Error in route match: ${matchId}`)
               }
@@ -179,6 +181,8 @@ function MatchView({
           >
             <ResolvedNotFoundBoundary
               fallback={(error) => {
+                error.routeId ??= matchState.routeId as any
+
                 // If the current not found handler doesn't exist or it has a
                 // route ID which doesn't match the current route, rethrow the error
                 if (
@@ -202,53 +206,52 @@ function MatchView({
           </ResolvedCatchBoundary>
         </ResolvedSuspenseBoundary>
       </matchContext.Provider>
-      {matchState.parentRouteId === rootRouteId &&
-      router.options.scrollRestoration ? (
+      {matchState.parentRouteId === rootRouteId ? (
         <>
-          <OnRendered />
-          <ScrollRestoration />
+          <OnRendered resetKey={resetKey} />
+          {router.options.scrollRestoration && (isServer ?? router.isServer) ? (
+            <ScrollRestoration />
+          ) : null}
         </>
       ) : null}
     </ShellComponent>
   )
 }
 
-// On Rendered can't happen above the root layout because it actually
-// renders a dummy dom element to track the rendered state of the app.
-// We render a script tag with a key that changes based on the current
-// location state.__TSR_key. Also, because it's below the root layout, it
-// allows us to fire onRendered events even after a hydration mismatch
-// error that occurred above the root layout (like bad head/link tags,
-// which is common).
-function OnRendered() {
+// On Rendered can't happen above the root layout because it needs to run after
+// the route subtree has committed below the root layout. Keeping it here lets
+// us fire onRendered even after a hydration mismatch above the root layout
+// (like bad head/link tags, which is common).
+function OnRendered({ resetKey }: { resetKey: number }) {
   const router = useRouter()
 
-  const prevLocationRef = React.useRef<undefined | ParsedLocation<{}>>(
-    undefined,
-  )
+  if (isServer ?? router.isServer) {
+    return null
+  }
 
-  return (
-    <script
-      key={router.latestLocation.state.__TSR_key}
-      suppressHydrationWarning
-      ref={(el) => {
-        if (
-          el &&
-          (prevLocationRef.current === undefined ||
-            prevLocationRef.current.href !== router.latestLocation.href)
-        ) {
-          router.emit({
-            type: 'onRendered',
-            ...getLocationChangeInfo(
-              router.stores.location.state,
-              router.stores.resolvedLocation.state,
-            ),
-          })
-          prevLocationRef.current = router.latestLocation
-        }
-      }}
-    />
-  )
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const prevHrefRef = React.useRef<string | undefined>(undefined)
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useLayoutEffect(() => {
+    const currentHref = router.latestLocation.href
+
+    if (
+      prevHrefRef.current === undefined ||
+      prevHrefRef.current !== currentHref
+    ) {
+      router.emit({
+        type: 'onRendered',
+        ...getLocationChangeInfo(
+          router.stores.location.get(),
+          router.stores.resolvedLocation.get(),
+        ),
+      })
+      prevHrefRef.current = currentHref
+    }
+  }, [router.latestLocation.state.__TSR_key, resetKey, router])
+
+  return null
 }
 
 export const MatchInner = React.memo(function MatchInnerImpl({
@@ -258,8 +261,24 @@ export const MatchInner = React.memo(function MatchInnerImpl({
 }): any {
   const router = useRouter()
 
+  const getMatchPromise = (
+    match: {
+      id: string
+      _nonReactive: {
+        displayPendingPromise?: Promise<void>
+        minPendingPromise?: Promise<void>
+        loadPromise?: Promise<void>
+      }
+    },
+    key: 'displayPendingPromise' | 'minPendingPromise' | 'loadPromise',
+  ) => {
+    return (
+      router.getMatch(match.id)?._nonReactive[key] ?? match._nonReactive[key]
+    )
+  }
+
   if (isServer ?? router.isServer) {
-    const match = router.stores.activeMatchStoresById.get(matchId)?.state
+    const match = router.stores.matchStores.get(matchId)?.get()
     if (!match) {
       if (process.env.NODE_ENV !== 'production') {
         throw new Error(
@@ -286,15 +305,15 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     const out = Comp ? <Comp key={key} /> : <Outlet />
 
     if (match._displayPending) {
-      throw router.getMatch(match.id)?._nonReactive.displayPendingPromise
+      throw getMatchPromise(match, 'displayPendingPromise')
     }
 
     if (match._forcePending) {
-      throw router.getMatch(match.id)?._nonReactive.minPendingPromise
+      throw getMatchPromise(match, 'minPendingPromise')
     }
 
     if (match.status === 'pending') {
-      throw router.getMatch(match.id)?._nonReactive.loadPromise
+      throw getMatchPromise(match, 'loadPromise')
     }
 
     if (match.status === 'notFound') {
@@ -316,7 +335,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
 
         invariant()
       }
-      throw router.getMatch(match.id)?._nonReactive.loadPromise
+      throw getMatchPromise(match, 'loadPromise')
     }
 
     if (match.status === 'error') {
@@ -338,7 +357,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
     return out
   }
 
-  const matchStore = router.stores.activeMatchStoresById.get(matchId)
+  const matchStore = router.stores.matchStores.get(matchId)
   if (!matchStore) {
     if (process.env.NODE_ENV !== 'production') {
       throw new Error(
@@ -383,11 +402,11 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   }, [key, route.options.component, router.options.defaultComponent])
 
   if (match._displayPending) {
-    throw router.getMatch(match.id)?._nonReactive.displayPendingPromise
+    throw getMatchPromise(match, 'displayPendingPromise')
   }
 
   if (match._forcePending) {
-    throw router.getMatch(match.id)?._nonReactive.minPendingPromise
+    throw getMatchPromise(match, 'minPendingPromise')
   }
 
   // see also hydrate() in packages/router-core/src/ssr/ssr-client.ts
@@ -412,7 +431,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
         }
       }
     }
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getMatchPromise(match, 'loadPromise')
   }
 
   if (match.status === 'notFound') {
@@ -427,8 +446,10 @@ export const MatchInner = React.memo(function MatchInnerImpl({
   }
 
   if (match.status === 'redirected') {
-    // Redirects should be handled by the router transition. If we happen to
-    // encounter a redirect here, it's a bug. Let's warn, but render nothing.
+    // A match can be observed as redirected during an in-flight transition,
+    // especially when pending UI is already rendering. Suspend on the match's
+    // load promise so React can abandon this stale render and continue the
+    // redirect transition.
     if (!isRedirect(match.error)) {
       if (process.env.NODE_ENV !== 'production') {
         throw new Error('Invariant failed: Expected a redirect error')
@@ -437,11 +458,7 @@ export const MatchInner = React.memo(function MatchInnerImpl({
       invariant()
     }
 
-    // warning(
-    //   false,
-    //   'Tried to render a redirected route match! This is a weird circumstance, please file an issue!',
-    // )
-    throw router.getMatch(match.id)?._nonReactive.loadPromise
+    throw getMatchPromise(match, 'loadPromise')
   }
 
   if (match.status === 'error') {
@@ -487,7 +504,7 @@ export const Outlet = React.memo(function OutletImpl() {
   let childMatchId: string | undefined
 
   if (isServer ?? router.isServer) {
-    const matches = router.stores.activeMatchesSnapshot.state
+    const matches = router.stores.matches.get()
     const parentIndex = matchId
       ? matches.findIndex((match) => match.id === matchId)
       : -1
@@ -500,7 +517,7 @@ export const Outlet = React.memo(function OutletImpl() {
     // Subscribe directly to the match store from the pool instead of
     // the two-level byId → matchStore pattern.
     const parentMatchStore = matchId
-      ? router.stores.activeMatchStoresById.get(matchId)
+      ? router.stores.matchStores.get(matchId)
       : undefined
 
     // eslint-disable-next-line react-hooks/rules-of-hooks

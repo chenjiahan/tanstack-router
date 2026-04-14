@@ -45,15 +45,13 @@ const triggerOnReady = (inner: InnerLoadContext): void | Promise<void> => {
 }
 
 const hasForcePendingActiveMatch = (router: AnyRouter): boolean => {
-  return router.stores.matchesId.state.some((matchId) => {
-    return router.stores.activeMatchStoresById.get(matchId)?.state._forcePending
+  return router.stores.matchesId.get().some((matchId) => {
+    return router.stores.matchStores.get(matchId)?.get()._forcePending
   })
 }
 
 const resolvePreload = (inner: InnerLoadContext, matchId: string): boolean => {
-  return !!(
-    inner.preload && !inner.router.stores.activeMatchStoresById.has(matchId)
-  )
+  return !!(inner.preload && !inner.router.stores.matchStores.has(matchId))
 }
 
 /**
@@ -138,9 +136,11 @@ const handleRedirectAndNotFound = (
       ...prev,
       status: isRedirect(err)
         ? 'redirected'
-        : prev.status === 'pending'
-          ? 'success'
-          : prev.status,
+        : isNotFound(err)
+          ? 'notFound'
+          : prev.status === 'pending'
+            ? 'success'
+            : prev.status,
       context: buildMatchContext(inner, match.index),
       isFetching: false,
       error: err,
@@ -879,17 +879,16 @@ const loadRouteMatch = async (
     }
   } else {
     const prevMatch = inner.router.getMatch(matchId)! // This is where all of the stale-while-revalidate magic happens
-    const activeIdAtIndex = inner.router.stores.matchesId.state[index]
+    const activeIdAtIndex = inner.router.stores.matchesId.get()[index]
     const activeAtIndex =
       (activeIdAtIndex &&
-        inner.router.stores.activeMatchStoresById.get(activeIdAtIndex)) ||
+        inner.router.stores.matchStores.get(activeIdAtIndex)) ||
       null
     const previousRouteMatchId =
       activeAtIndex?.routeId === routeId
         ? activeIdAtIndex
-        : inner.router.stores.activeMatchesSnapshot.state.find(
-            (d) => d.routeId === routeId,
-          )?.id
+        : inner.router.stores.matches.get().find((d) => d.routeId === routeId)
+            ?.id
     const preload = resolvePreload(inner, matchId)
 
     // there is a loaderPromise, so we are in the middle of a load
@@ -923,7 +922,7 @@ const loadRouteMatch = async (
       }
     } else {
       const nextPreload =
-        preload && !inner.router.stores.activeMatchStoresById.has(matchId)
+        preload && !inner.router.stores.matchStores.has(matchId)
       const match = inner.router.getMatch(matchId)!
       match._nonReactive.loaderPromise = createControlledPromise<void>()
       if (nextPreload !== match.preload) {
@@ -1002,7 +1001,7 @@ export async function loadMatches(arg: {
       break
     }
 
-    if (inner.serialError) {
+    if (inner.serialError || inner.firstBadMatchIndex != null) {
       break
     }
   }
@@ -1057,9 +1056,10 @@ export async function loadMatches(arg: {
     firstNotFound ??
     (beforeLoadNotFound && !inner.preload ? beforeLoadNotFound : undefined)
 
-  let headMaxIndex = inner.serialError
-    ? (inner.firstBadMatchIndex ?? 0)
-    : inner.matches.length - 1
+  let headMaxIndex =
+    inner.firstBadMatchIndex !== undefined
+      ? inner.firstBadMatchIndex
+      : inner.matches.length - 1
 
   if (!notFoundToThrow && beforeLoadNotFound && inner.preload) {
     return inner.matches

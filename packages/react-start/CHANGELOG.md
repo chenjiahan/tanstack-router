@@ -1,5 +1,318 @@
 # @tanstack/react-start
 
+## 1.167.39
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/react-router@1.168.21
+  - @tanstack/react-start-client@1.166.38
+  - @tanstack/react-start-rsc@0.0.18
+  - @tanstack/react-start-server@1.166.39
+  - @tanstack/start-client-core@1.167.17
+  - @tanstack/start-plugin-core@1.167.34
+  - @tanstack/start-server-core@1.167.19
+
+## 1.167.38
+
+### Patch Changes
+
+- Updated dependencies [[`c5ad329`](https://github.com/TanStack/router/commit/c5ad32936f6adcca0c56474677b73b212498443b)]:
+  - @tanstack/react-router@1.168.20
+  - @tanstack/react-start-client@1.166.37
+  - @tanstack/react-start-rsc@0.0.17
+  - @tanstack/react-start-server@1.166.38
+
+## 1.167.37
+
+### Patch Changes
+
+- Fix `@tanstack/react-start/server` imports inside React Server Components by adding a `react-server` export condition that resolves to the request/response APIs without pulling in the SSR renderer entrypoints. ([#7180](https://github.com/TanStack/router/pull/7180))
+
+  This fixes RSC routes that call `createServerFn` loaders and read request headers in dev with `@vitejs/plugin-rsc` enabled.
+
+## 1.167.36
+
+### Patch Changes
+
+- Updated dependencies [[`a581680`](https://github.com/TanStack/router/commit/a581680a27530469751b8ab419ada9ce66da4ffe)]:
+  - @tanstack/start-plugin-core@1.167.33
+  - @tanstack/react-start-rsc@0.0.16
+
+## 1.167.35
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.32
+  - @tanstack/react-start-rsc@0.0.15
+
+## 1.167.34
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.31
+  - @tanstack/react-start-rsc@0.0.14
+
+## 1.167.33
+
+### Patch Changes
+
+- Updated dependencies [[`105d056`](https://github.com/TanStack/router/commit/105d05691a247779a63e7b688aa1207cce619339)]:
+  - @tanstack/react-router@1.168.19
+  - @tanstack/start-plugin-core@1.167.30
+  - @tanstack/react-start-client@1.166.36
+  - @tanstack/react-start-rsc@0.0.13
+  - @tanstack/react-start-server@1.166.37
+
+## 1.167.32
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.29
+  - @tanstack/react-start-rsc@0.0.12
+
+## 1.167.31
+
+### Patch Changes
+
+- Updated dependencies [[`0e2c900`](https://github.com/TanStack/router/commit/0e2c9003c18ae07c09969189c028f277ea562a7a)]:
+  - @tanstack/start-server-core@1.167.18
+  - @tanstack/react-start-rsc@0.0.11
+  - @tanstack/react-start-server@1.166.36
+  - @tanstack/start-plugin-core@1.167.28
+  - @tanstack/react-router@1.168.18
+  - @tanstack/react-start-client@1.166.35
+  - @tanstack/start-client-core@1.167.16
+
+## 1.167.30
+
+### Patch Changes
+
+- Updated dependencies [[`812792f`](https://github.com/TanStack/router/commit/812792fbda3caf97b300770855cf5641252f413b)]:
+  - @tanstack/start-plugin-core@1.167.27
+  - @tanstack/start-server-core@1.167.17
+  - @tanstack/react-router@1.168.17
+  - @tanstack/react-start-client@1.166.34
+  - @tanstack/react-start-rsc@0.0.10
+  - @tanstack/react-start-server@1.166.35
+  - @tanstack/start-client-core@1.167.15
+
+## 1.167.29
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/react-router@1.168.16
+  - @tanstack/react-start-client@1.166.33
+  - @tanstack/react-start-rsc@0.0.9
+  - @tanstack/react-start-server@1.166.34
+  - @tanstack/start-client-core@1.167.14
+  - @tanstack/start-plugin-core@1.167.26
+  - @tanstack/start-server-core@1.167.16
+
+## 1.167.28
+
+### Patch Changes
+
+- Updated dependencies [[`d3f20fb`](https://github.com/TanStack/router/commit/d3f20fbe7acf69c3bd108c5ddc9748ad47690b04)]:
+  - @tanstack/start-plugin-core@1.167.25
+  - @tanstack/react-start-rsc@0.0.8
+
+## 1.167.27
+
+### Patch Changes
+
+- Updated dependencies [[`6355bb7`](https://github.com/TanStack/router/commit/6355bb75f7637ba77f06a923c18fdaf37720bb48)]:
+  - @tanstack/start-server-core@1.167.15
+  - @tanstack/react-router@1.168.15
+  - @tanstack/react-start-rsc@0.0.7
+  - @tanstack/react-start-server@1.166.33
+  - @tanstack/start-plugin-core@1.167.24
+  - @tanstack/react-start-client@1.166.32
+  - @tanstack/start-client-core@1.167.13
+
+## 1.167.26
+
+### Patch Changes
+
+- migrate createStore > createAtom for simpler API ([#7150](https://github.com/TanStack/router/pull/7150))
+
+- Updated dependencies [[`459057c`](https://github.com/TanStack/router/commit/459057cd2d90cff20d20e51d4964b0a8c950555e)]:
+  - @tanstack/start-client-core@1.167.12
+  - @tanstack/start-server-core@1.167.14
+  - @tanstack/react-router@1.168.14
+  - @tanstack/react-start-client@1.166.31
+  - @tanstack/react-start-rsc@0.0.6
+  - @tanstack/react-start-server@1.166.32
+  - @tanstack/start-plugin-core@1.167.23
+
+## 1.167.25
+
+### Patch Changes
+
+- fix publishing ([`f8ac427`](https://github.com/TanStack/router/commit/f8ac427000c3fec99225926e72f9f2fc7a37231f))
+
+- Updated dependencies [[`f8ac427`](https://github.com/TanStack/router/commit/f8ac427000c3fec99225926e72f9f2fc7a37231f)]:
+  - @tanstack/start-server-core@1.167.13
+  - @tanstack/start-client-core@1.167.11
+  - @tanstack/react-start-client@1.166.30
+  - @tanstack/react-start-server@1.166.31
+  - @tanstack/react-start-rsc@0.0.5
+  - @tanstack/start-plugin-core@1.167.22
+
+## 1.167.24
+
+### Patch Changes
+
+- fix publishing ([`2d53c05`](https://github.com/TanStack/router/commit/2d53c056ef0b203de8a28bc92c24e8e604205d52))
+
+- Updated dependencies [[`2d53c05`](https://github.com/TanStack/router/commit/2d53c056ef0b203de8a28bc92c24e8e604205d52)]:
+  - @tanstack/start-server-core@1.167.12
+  - @tanstack/start-plugin-core@1.167.21
+  - @tanstack/react-start-server@1.166.30
+  - @tanstack/react-start-rsc@0.0.4
+
+## 1.167.22
+
+### Patch Changes
+
+- Republish the React Start RSC package chain so fresh installs resolve a `start-plugin-core` build that exports the subpaths used by `react-start-rsc`. ([`3384abc`](https://github.com/TanStack/router/commit/3384abcffd98a68eb254b11221834bcbcdebec31))
+
+- Updated dependencies [[`3384abc`](https://github.com/TanStack/router/commit/3384abcffd98a68eb254b11221834bcbcdebec31)]:
+  - @tanstack/start-plugin-core@1.167.19
+  - @tanstack/react-start-rsc@0.0.2
+
+## 1.167.21
+
+### Patch Changes
+
+- Updated dependencies [[`f920527`](https://github.com/TanStack/router/commit/f920527e8d5a2124f0c8a1b2c9889c9d1bf29d90)]:
+  - @tanstack/react-start-rsc@0.0.1
+
+## 1.167.20
+
+### Patch Changes
+
+- Updated dependencies [[`540d221`](https://github.com/TanStack/router/commit/540d22100d33415a1ddc9eb193f6aeb8184da77f), [`70ec1da`](https://github.com/TanStack/router/commit/70ec1da1ed8aa252fae67716f69fe8520ecf91b0)]:
+  - @tanstack/react-router@1.168.13
+  - @tanstack/react-start-client@1.166.29
+  - @tanstack/react-start-server@1.166.29
+
+## 1.167.19
+
+### Patch Changes
+
+- Updated dependencies [[`b29d64d`](https://github.com/TanStack/router/commit/b29d64de0c400183114c12f82183f80e37d9ea5c)]:
+  - @tanstack/react-router@1.168.12
+  - @tanstack/react-start-client@1.166.28
+  - @tanstack/react-start-server@1.166.28
+
+## 1.167.18
+
+### Patch Changes
+
+- Updated dependencies [[`4b9ed6c`](https://github.com/TanStack/router/commit/4b9ed6c5cb5437df8607c605728c8338dd2eb02c)]:
+  - @tanstack/react-router@1.168.11
+  - @tanstack/react-start-client@1.166.27
+  - @tanstack/react-start-server@1.166.27
+
+## 1.167.17
+
+### Patch Changes
+
+- Updated dependencies [[`f7e9c5e`](https://github.com/TanStack/router/commit/f7e9c5e323793d1b28c96871819c265fd28ae397)]:
+  - @tanstack/start-client-core@1.167.10
+  - @tanstack/start-server-core@1.167.10
+  - @tanstack/react-start-client@1.166.26
+  - @tanstack/react-start-server@1.166.26
+  - @tanstack/start-plugin-core@1.167.18
+
+## 1.167.16
+
+### Patch Changes
+
+- Updated dependencies [[`796406d`](https://github.com/TanStack/router/commit/796406da66cfb12b518bb3ca326c9d541368fb06)]:
+  - @tanstack/react-router@1.168.10
+  - @tanstack/react-start-client@1.166.25
+  - @tanstack/react-start-server@1.166.25
+  - @tanstack/start-client-core@1.167.9
+  - @tanstack/start-plugin-core@1.167.17
+  - @tanstack/start-server-core@1.167.9
+
+## 1.167.15
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/react-router@1.168.9
+  - @tanstack/react-start-client@1.166.24
+  - @tanstack/react-start-server@1.166.24
+  - @tanstack/start-client-core@1.167.8
+  - @tanstack/start-plugin-core@1.167.16
+  - @tanstack/start-server-core@1.167.8
+
+## 1.167.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.15
+
+## 1.167.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/react-router@1.168.8
+  - @tanstack/react-start-client@1.166.23
+  - @tanstack/react-start-server@1.166.23
+  - @tanstack/start-client-core@1.167.7
+  - @tanstack/start-plugin-core@1.167.14
+  - @tanstack/start-server-core@1.167.7
+
+## 1.167.12
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/react-router@1.168.7
+  - @tanstack/react-start-client@1.166.22
+  - @tanstack/react-start-server@1.166.22
+  - @tanstack/start-client-core@1.167.6
+  - @tanstack/start-plugin-core@1.167.13
+  - @tanstack/start-server-core@1.167.6
+
+## 1.167.11
+
+### Patch Changes
+
+- Updated dependencies [[`5ca661c`](https://github.com/TanStack/router/commit/5ca661c2f8a7e50167b4112c64aa06cef4148ea9)]:
+  - @tanstack/react-router@1.168.6
+  - @tanstack/react-start-client@1.166.21
+  - @tanstack/react-start-server@1.166.21
+
+## 1.167.10
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tanstack/start-plugin-core@1.167.12
+
+## 1.167.9
+
+### Patch Changes
+
+- Updated dependencies [[`cf5f554`](https://github.com/TanStack/router/commit/cf5f5542476137a81515099ad740747e84512f9a)]:
+  - @tanstack/react-router@1.168.5
+  - @tanstack/react-start-client@1.166.20
+  - @tanstack/react-start-server@1.166.20
+  - @tanstack/start-client-core@1.167.5
+  - @tanstack/start-plugin-core@1.167.11
+  - @tanstack/start-server-core@1.167.5
+
 ## 1.167.8
 
 ### Patch Changes

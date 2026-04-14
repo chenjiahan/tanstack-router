@@ -52,7 +52,7 @@ Call server functions from:
 ```tsx
 // In a route loader
 export const Route = createFileRoute('/posts')({
-  loader: () => getPosts(),
+  loader: () => getServerPosts(),
 })
 
 // In a component
@@ -321,6 +321,10 @@ Compose server functions with middleware for authentication, logging, and shared
 ### Static Server Functions
 
 Cache server function results at build time for static generation. See [Static Server Functions](./static-server-functions).
+
+### Server Components
+
+Server functions can return Server Components - server-rendered React components that the client can compose. See [Server Components](./server-components.md).
 
 ### Request Cancellation
 

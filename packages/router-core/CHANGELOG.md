@@ -1,5 +1,75 @@
 # @tanstack/router-core
 
+## 1.168.15
+
+### Patch Changes
+
+- Fix async loaders that throw or return `notFound()` so they do not briefly mark the match as `success` before the final not-found boundary is resolved. ([#7184](https://github.com/TanStack/router/pull/7184))
+
+  This prevents route components from rendering with missing loader data during navigation when React observes the intermediate match state before not-found finalization completes.
+
+## 1.168.14
+
+### Patch Changes
+
+- chore: bump to h3 v2-rc.20 ([#7140](https://github.com/TanStack/router/pull/7140))
+
+## 1.168.13
+
+### Patch Changes
+
+- Reduce React Start SSR manifest payload size by omitting unmatched route assets from dehydrated router state while keeping start-manifest asset serialization deduplicated by shared object identity. ([#7157](https://github.com/TanStack/router/pull/7157))
+
+  This improves SSR HTML size for apps with many routes that share the same CSS assets and adds regression coverage for CSS module hydration, navigation, and start-manifest asset reuse.
+
+## 1.168.12
+
+### Patch Changes
+
+- avoid false notFound matches for proxied loader data ([#7156](https://github.com/TanStack/router/pull/7156))
+
+## 1.168.11
+
+### Patch Changes
+
+- shorten internal non-minifiable store names for byte shaving ([#7152](https://github.com/TanStack/router/pull/7152))
+
+## 1.168.10
+
+### Patch Changes
+
+- migrate createStore > createAtom for simpler API ([#7150](https://github.com/TanStack/router/pull/7150))
+
+## 1.168.9
+
+### Patch Changes
+
+- Preserve component-thrown `notFound()` errors through framework error boundaries so route `notFoundComponent` handlers render without requiring an explicit `routeId`. ([#7077](https://github.com/TanStack/router/pull/7077))
+
+## 1.168.8
+
+### Patch Changes
+
+- Fix preload from continuing into child `beforeLoad` and `head` handlers after a parent `beforeLoad` fails. ([#7075](https://github.com/TanStack/router/pull/7075))
+
+## 1.168.7
+
+### Patch Changes
+
+- Avoid re-running hash scrolling after SSR hydration when later preload or invalidate cycles resolve without a location change. ([#7066](https://github.com/TanStack/router/pull/7066))
+
+## 1.168.6
+
+### Patch Changes
+
+- Fix a regression where browser back/forward navigation could fail to restore the previous scroll position for an existing history entry. ([#7055](https://github.com/TanStack/router/pull/7055))
+
+## 1.168.5
+
+### Patch Changes
+
+- fix: scroll restoration without throttling ([#7042](https://github.com/TanStack/router/pull/7042))
+
 ## 1.168.4
 
 ### Patch Changes

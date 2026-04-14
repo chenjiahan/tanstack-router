@@ -1,7 +1,9 @@
 import path from 'node:path'
 import * as fsp from 'node:fs/promises'
 import {
+  cleanPath,
   determineInitialRoutePath,
+  escapeRegExp,
   hasEscapedLeadingUnderscore,
   removeExt,
   replaceBackslash,
@@ -120,16 +122,21 @@ export async function getRouteNodes(
         )
       allPhysicalDirectories.push(...physicalDirectories)
       virtualRouteNodes.forEach((node) => {
-        const filePath = replaceBackslash(path.join(dir, node.filePath))
-        const routePath = `/${dir}${node.routePath}`
+        const normalizedDir = dir === './' ? '' : dir
+        const filePath = replaceBackslash(
+          path.join(normalizedDir, node.filePath),
+        )
+        const routePath = cleanPath(`/${normalizedDir}${node.routePath}`)
 
         node.variableName = routePathToVariable(
-          `${dir}/${removeExt(node.filePath)}`,
+          cleanPath(`/${normalizedDir}/${removeExt(node.filePath)}`),
         )
         node.routePath = routePath
         // Keep originalRoutePath aligned with routePath for escape detection
         if (node.originalRoutePath) {
-          node.originalRoutePath = `/${dir}${node.originalRoutePath}`
+          node.originalRoutePath = cleanPath(
+            `/${normalizedDir}${node.originalRoutePath}`,
+          )
         }
         node.filePath = filePath
         // Virtual subtree nodes (from __virtual.ts) are embedded in a
@@ -265,9 +272,12 @@ export async function getRouteNodes(
 
           if (suffixToStrip || shouldStripRouteToken) {
             const stripSegment = suffixToStrip ?? lastRouteSegment
-            routePath = routePath.replace(new RegExp(`/${stripSegment}$`), '')
+            routePath = routePath.replace(
+              new RegExp(`/${escapeRegExp(stripSegment)}$`),
+              '',
+            )
             originalRoutePath = originalRoutePath.replace(
-              new RegExp(`/${stripSegment}$`),
+              new RegExp(`/${escapeRegExp(stripSegment)}$`),
               '',
             )
           }
@@ -305,13 +315,13 @@ export async function getRouteNodes(
 
               routePath =
                 routePath.replace(
-                  new RegExp(`/${updatedLastRouteSegment}$`),
+                  new RegExp(`/${escapeRegExp(updatedLastRouteSegment)}$`),
                   '/',
                 ) || (isLayoutRoute ? '' : '/')
 
               originalRoutePath =
                 originalRoutePath.replace(
-                  new RegExp(`/${indexTokenCandidate}$`),
+                  new RegExp(`/${escapeRegExp(indexTokenCandidate)}$`),
                   '/',
                 ) || (isLayoutRoute ? '' : '/')
             }

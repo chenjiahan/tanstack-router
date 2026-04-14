@@ -1,5 +1,102 @@
 # @tanstack/router-generator
 
+## 1.166.32
+
+### Patch Changes
+
+- Updated dependencies [[`16f6892`](https://github.com/TanStack/router/commit/16f6892d6b7ceadf606677c5a40e743f29163aa6)]:
+  - @tanstack/router-core@1.168.15
+
+## 1.166.31
+
+### Patch Changes
+
+- Fix malformed generated paths when a `physical()` mount points at a subtree rooted by `__virtual.ts`, including nested virtual layouts that mount additional physical routes. ([#7169](https://github.com/TanStack/router/pull/7169))
+
+## 1.166.30
+
+### Patch Changes
+
+- Fix route file transforms to preserve route ID quoting, handle more exported `Route` patterns, and avoid incorrect import rewrites in edge cases. ([#7167](https://github.com/TanStack/router/pull/7167))
+
+  Improve transform robustness with clearer route-call detection, safer import removal, and expanded test coverage for quote preservation, constructor swaps, and unsupported route definitions.
+
+## 1.166.29
+
+### Patch Changes
+
+- Updated dependencies [[`0e2c900`](https://github.com/TanStack/router/commit/0e2c9003c18ae07c09969189c028f277ea562a7a)]:
+  - @tanstack/router-core@1.168.14
+
+## 1.166.28
+
+### Patch Changes
+
+- Updated dependencies [[`812792f`](https://github.com/TanStack/router/commit/812792fbda3caf97b300770855cf5641252f413b)]:
+  - @tanstack/router-core@1.168.13
+
+## 1.166.27
+
+### Patch Changes
+
+- Updated dependencies [[`8ec9ca9`](https://github.com/TanStack/router/commit/8ec9ca97b472779de878c2a6510f21deb24d386c)]:
+  - @tanstack/router-core@1.168.12
+
+## 1.166.26
+
+### Patch Changes
+
+- Updated dependencies [[`6355bb7`](https://github.com/TanStack/router/commit/6355bb75f7637ba77f06a923c18fdaf37720bb48)]:
+  - @tanstack/router-core@1.168.11
+
+## 1.166.25
+
+### Patch Changes
+
+- Updated dependencies [[`459057c`](https://github.com/TanStack/router/commit/459057cd2d90cff20d20e51d4964b0a8c950555e)]:
+  - @tanstack/router-core@1.168.10
+
+## 1.166.24
+
+### Patch Changes
+
+- Updated dependencies [[`796406d`](https://github.com/TanStack/router/commit/796406da66cfb12b518bb3ca326c9d541368fb06)]:
+  - @tanstack/router-core@1.168.9
+
+## 1.166.23
+
+### Patch Changes
+
+- Updated dependencies [[`2d1ec86`](https://github.com/TanStack/router/commit/2d1ec865a446926f7db6e29dbbde82d265de6d36)]:
+  - @tanstack/router-core@1.168.8
+
+## 1.166.22
+
+### Patch Changes
+
+- Updated dependencies [[`6ee0e79`](https://github.com/TanStack/router/commit/6ee0e795b085651beb2f1ac6503cdbd7eaffedd1)]:
+  - @tanstack/router-core@1.168.7
+
+## 1.166.21
+
+### Patch Changes
+
+- Updated dependencies [[`42c3f3b`](https://github.com/TanStack/router/commit/42c3f3b3a3a478fd6d6894310ef94b2d23794b8e)]:
+  - @tanstack/router-core@1.168.6
+
+## 1.166.20
+
+### Patch Changes
+
+- Fix file-based route generation when custom `routeToken` or `indexToken` values start with regex metacharacters like `+`. ([#7048](https://github.com/TanStack/router/pull/7048))
+
+## 1.166.19
+
+### Patch Changes
+
+- Updated dependencies [[`cf5f554`](https://github.com/TanStack/router/commit/cf5f5542476137a81515099ad740747e84512f9a)]:
+  - @tanstack/router-core@1.168.5
+
 ## 1.166.18
 
 ### Patch Changes

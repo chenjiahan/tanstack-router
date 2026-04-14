@@ -397,13 +397,13 @@ export { isNotFound, notFound } from './not-found'
 
 export {
   defaultGetScrollRestorationKey,
-  restoreScroll,
+  getElementScrollRestorationEntry,
   storageKey,
-  getCssSelector,
   scrollRestorationCache,
   setupScrollRestoration,
-  handleHashScroll,
 } from './scroll-restoration'
+
+export { handleHashScroll } from './hash-scroll'
 
 export type {
   ScrollRestorationOptions,
@@ -435,7 +435,6 @@ export type {
   AnySerializationAdapter,
   SerializationAdapter,
   ValidateSerializableInput,
-  ValidateSerializableInputResult,
   SerializerExtensions,
   ValidateSerializable,
   RegisteredSerializableInput,
@@ -444,6 +443,7 @@ export type {
   Serializable,
   TSR_SERIALIZABLE,
   TsrSerializable,
+  SerializationError,
 } from './ssr/serializer/transformer'
 
 export {
